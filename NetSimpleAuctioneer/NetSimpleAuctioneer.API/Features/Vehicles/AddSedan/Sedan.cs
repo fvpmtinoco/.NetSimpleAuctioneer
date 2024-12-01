@@ -2,5 +2,5 @@
 
 namespace NetSimpleAuctioneer.API.Features.Vehicles.AddSedan
 {
-    public sealed record Sedan(long Id, string Manufacturer, string Model, int Year, decimal StartingBid, int NumberOfDoors) : IVehicle;
+    public record Sedan(Guid Id, string Manufacturer, string Model, int Year, decimal StartingBid, int NumberOfDoors) : IVehicle;
 }

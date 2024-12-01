@@ -2,7 +2,7 @@
 {
     public interface IVehicle
     {
-        long Id { get; }
+        Guid Id { get; }
         string Manufacturer { get; }
         string Model { get; }
         int Year { get; }
