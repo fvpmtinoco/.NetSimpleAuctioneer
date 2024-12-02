@@ -10,7 +10,7 @@ The project employs [Vertical Slice Architecture (VSA)](https://www.milanjovanov
 - **When to Consider Clean Architecture**: For projects with more complex requirements, Clean Architecture might be a more appropriate choice.
 
 **Shared Resources**:  
-Common services, repositories, and shared logic are housed in a dedicated `Shared` folder, fostering reusability and consistency across features.
+Common services, repositories, and shared logic are housed in a dedicated `Shared` folder, intended for reusability and consistency across features.
 
 ## Considerations
 
@@ -56,14 +56,32 @@ To update the PostgreSQL database schema based on the existing migrations, run:
 dotnet ef database update
 ```
 
-## Step 2: Verify the Database was created along with the tables
+## Step 2: Verify the Database was created along with the tables (using Powershell)
 
-1. Access the PostgreSQL shell:
+Check if the PostgreSQL container is running
+   ```bash
+   docker ps
+   ```
+### Using powershell:
+1. Enter the container bash
+   ```bash
+   docker exec -it auctioneerdb bash
+   ```
+2. Access the PostgreSQL shell:
    ```bash
    psql -U postgres -d AuctioneerDB
    ```
-
-2. Verify that the tables were created
+3. Verify that the tables were created
     ```bash
     \dt
     ```
+    ![image](https://github.com/user-attachments/assets/da34003b-42a7-4ac4-b61c-e066bbe7b583)
+
+### Using [pgAgmin](https://www.postgresql.org/ftp/pgadmin/pgadmin4/v8.13/windows/):
+1. Register new server
+   
+   ![image](https://github.com/user-attachments/assets/41dbef7b-1301-4e39-be35-37843b3312c7)
+2. Verify both database and corresponding tables were created
+   
+   ![image](https://github.com/user-attachments/assets/d5d90cde-28fc-463d-9a0d-815239de9c23)
+
