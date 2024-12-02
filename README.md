@@ -1,7 +1,7 @@
 # .NetSimpleAuctioneer
 
 ## Assumptions
-1. A vehicle can be in different auctions, in different periods of time. For instance, if an auction closes, the vehiche is "released" and can be the subject of another auction.
+1. A vehicle can be in different auctions, provided they occur in different periods of time. For instance, if an auction closes, the vehiche is "released" and can be the subject of another auction.
 
 ## Key Design Features
 
