@@ -1,0 +1,13 @@
+# services:
+#   netsimpleauctioneer.api:
+#     image: ${DOCKER_REGISTRY-}netsimpleauctioneerapi
+#     build:
+#       context: NetSimpleAuctioneer.API
+#       dockerfile: Dockerfile
+
+services:
+    auctioneerdb:
+        image: postgres
+
+volumes:
+     postgres_auctioneer:

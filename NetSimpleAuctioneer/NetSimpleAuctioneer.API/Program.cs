@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using NetSimpleAuctioneer.API.Database;
+using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Unchase.Swashbuckle.AspNetCore.Extensions.Extensions;
@@ -8,11 +11,17 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
+// PostgreSQL connection string
+builder.Services.AddDbContext<AuctioneerDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 // Register MediatR services from the current assembly
 builder.Services.AddMediatR(config =>
 {
     config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
 });
+
+builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using NetSimpleAuctioneer.API.Database;
 using NetSimpleAuctioneer.API.Features.Shared;
 using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
 
@@ -6,20 +7,27 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddSedan
 {
     public record AddSedanCommand(Guid Id, string Manufacturer, string Model, int Year, decimal StartingBid, int NumberOfDoors) : IRequest<VoidOrError<AddVehicleErrorCode>>;
 
-    public class AddSedanHandler : IRequestHandler<AddSedanCommand, VoidOrError<AddVehicleErrorCode>>
+    public class AddSedanHandler(IVehicleRepository commonRepository) : IRequestHandler<AddSedanCommand, VoidOrError<AddVehicleErrorCode>>
     {
-        public Task<VoidOrError<AddVehicleErrorCode>> Handle(AddSedanCommand request, CancellationToken cancellationToken)
+        public async Task<VoidOrError<AddVehicleErrorCode>> Handle(AddSedanCommand request, CancellationToken cancellationToken)
         {
-            var hatchback = new Sedan(request.Id, request.Manufacturer, request.Model, request.Year, request.StartingBid, request.NumberOfDoors);
+            var sedan = new Vehicle
+            {
+                Id = request.Id,
+                Manufacturer = request.Manufacturer,
+                Model = request.Model,
+                Year = request.Year,
+                StartingBid = request.StartingBid,
+                VehicleType = (int)VehicleType.Sedan,
+                NumberOfDoors = request.NumberOfDoors
+            };
 
-            // Check if hatchback already exists
-            // Common service / repository
+            var result = await commonRepository.AddWithRetryAsync(sedan, cancellationToken);
 
-            // Any SysClKey? 
+            if (result == null)
+                return VoidOrError<AddVehicleErrorCode>.Success();
 
-            // Save to database
-
-            return Task.FromResult(VoidOrError<AddVehicleErrorCode>.Success());
+            return VoidOrError<AddVehicleErrorCode>.Failure(result.Value);
         }
     }
 }

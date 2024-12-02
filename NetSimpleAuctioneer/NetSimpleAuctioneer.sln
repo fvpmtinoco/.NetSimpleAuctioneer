@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetSimpleAuctioneer.Integra
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetSimpleAuctioneer.UnitTests", "NetSimpleAuctioneer.UnitTests\NetSimpleAuctioneer.UnitTests.csproj", "{6BFDFC7B-E6F0-4CA5-995C-6B026A6A27B0}"
 EndProject
+Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{9172ED1F-6F54-48A2-923E-BE3DE80826F7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,10 @@ Global
 		{6BFDFC7B-E6F0-4CA5-995C-6B026A6A27B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6BFDFC7B-E6F0-4CA5-995C-6B026A6A27B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6BFDFC7B-E6F0-4CA5-995C-6B026A6A27B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9172ED1F-6F54-48A2-923E-BE3DE80826F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9172ED1F-6F54-48A2-923E-BE3DE80826F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9172ED1F-6F54-48A2-923E-BE3DE80826F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9172ED1F-6F54-48A2-923E-BE3DE80826F7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

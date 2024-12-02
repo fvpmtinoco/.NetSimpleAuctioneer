@@ -13,7 +13,7 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
         [ProducesResponseType(typeof(List<ErrorResult<PlaceBidErrorCode>>), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> PlaceBid([FromBody, Required] PlaceBidRequest request)
         {
-            var response = await mediator.Send(new PlaceBidCommand(request.VehicleId, request.BidderName, request.BidAmount));
+            var response = await mediator.Send(new PlaceBidCommand(request.VehicleId, request.BidderEmail, request.BidAmount));
             if (response.HasErrors)
                 return Conflict(response.Errors);
 
@@ -27,8 +27,8 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
         public Guid VehicleId { get; set; }
 
         [Required]
-        [StringLength(100, MinimumLength = 1, ErrorMessage = "Bidder name must be between 1 and 100 characters.")]
-        public string BidderName { get; set; } = default!;
+        [EmailAddress]
+        public string BidderEmail { get; set; } = default!;
 
         [Required]
         [Range(0.01, double.MaxValue, ErrorMessage = "Bid amount must be greater than 0.")]
