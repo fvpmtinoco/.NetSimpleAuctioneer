@@ -34,7 +34,7 @@ For distributed and highly scalable scenarios in cloud environments, an alternat
 While the current implementation maybe sufficient for most use cases, **SQS + Lambda** is better suited for systems with high traffic and distributed infrastructure.
 
 ### Validations
-#### **Current Implementation***
+#### **Current Implementation**
 This API uses ASP.NET Core's built-in validation with Data Annotations. Considered the approach suitable for this project because it is a simple API with no complex validation rules. 
 All validation logic is defined directly in the model classes using attributes like `[Required]`, `[EmailAddress]`, and `[Range]`. This keeps the implementation straightforward and easy to maintain.
 
