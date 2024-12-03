@@ -37,7 +37,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddHatchback
                 return action;
             }
 
-            return Created();
+            return Created(Url.Action("addHatchback", new { id = request.Id }), request.Id);
         }
     }
 

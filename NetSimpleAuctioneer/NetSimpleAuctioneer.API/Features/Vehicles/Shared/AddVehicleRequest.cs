@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using NetSimpleAuctioneer.API.Application;
+using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations;
 
 namespace NetSimpleAuctioneer.API.Features.Vehicles.Shared
@@ -9,6 +10,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Shared
         /// The unique identifier of the vehicle.
         /// </summary>
         [Required]
+        [NotEmptyGuid(ErrorMessage = "Id cannot be empty.")]
         public Guid Id { get; set; }
 
         /// <summary>
@@ -36,7 +38,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Shared
         /// The starting bid for the vehicle.
         /// </summary>
         [Required]
-        [Range(1, double.MaxValue)]
+        [Range(1, 1000000000)]
         public decimal StartingBid { get; set; }
     }
 }

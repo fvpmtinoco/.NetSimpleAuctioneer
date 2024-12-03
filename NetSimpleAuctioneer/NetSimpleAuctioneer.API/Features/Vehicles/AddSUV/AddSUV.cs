@@ -35,7 +35,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddSUV
                 return action;
             }
 
-            return Created();
+            return Created(Url.Action("addSUV", new { id = request.Id }), request.Id);
         }
     }
 
@@ -52,7 +52,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddSUV
         /// Number of seats
         /// </summary>
         [Required]
-        [Range(0, 20, ErrorMessage = "Number of seats must be between 1 and 20")]
+        [Range(1, 20, ErrorMessage = "Number of seats must be between 1 and 20")]
         public int NumberOfSeats { get; set; }
     }
 

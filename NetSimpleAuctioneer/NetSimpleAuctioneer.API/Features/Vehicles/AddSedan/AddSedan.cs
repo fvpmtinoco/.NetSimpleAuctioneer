@@ -36,7 +36,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddSedan
                 return action;
             }
 
-            return Created();
+            return Created(Url.Action("addSedan", new { id = request.Id }), request.Id);
         }
     }
 

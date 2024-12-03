@@ -35,7 +35,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddTruck
                 return action;
             }
 
-            return Created();
+            return Created(Url.Action("addTruck", new { id = request.Id }), request.Id);
         }
     }
 
