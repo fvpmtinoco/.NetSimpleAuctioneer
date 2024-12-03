@@ -2,16 +2,13 @@
 using Microsoft.AspNetCore.Mvc;
 using NetSimpleAuctioneer.API.Features.Auctions.Shared;
 using NetSimpleAuctioneer.API.Features.Shared;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace NetSimpleAuctioneer.API.Features.Auctions.StartAuction
 {
     #region Controller
 
-    /// <summary>
-    /// Controller to start an auction for a vehicle
-    /// </summary>
-    /// <param name="mediator"></param>
     public class StartAuctionController(IMediator mediator) : AuctionsControllerBase(mediator)
     {
         /// <summary>
@@ -76,17 +73,13 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.StartAuction
     /// </summary>
     public enum StartAuctionErrorCode
     {
-        /// <summary>
-        /// Provided vehicle identification not found
-        /// </summary>
+        [Description("Provided vehicle identification not found")]
         VehicleNotFound,
-        /// <summary>
-        /// An auction for the provided vehicle identification is already active
-        /// </summary>
+
+        [Description("An auction for the provided vehicle identification is already active")]
         AuctionAlreadyActive,
-        /// <summary>
-        /// Internal error creating the auction
-        /// </summary>
+
+        [Description("Internal error creating the auction")]
         InternalError
     }
 

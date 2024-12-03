@@ -10,7 +10,6 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.CloseAuction
     {
         public async Task<SuccessOrError<CloseAuctionCommandResult, CloseAuctionErrorCode>> Handle(CloseAuctionCommand request, CancellationToken cancellationToken)
         {
-            // Delegate the work to the repository
             var result = await closeAuctionRepository.CloseAuctionAsync(request.AuctionId, cancellationToken);
 
             return result;

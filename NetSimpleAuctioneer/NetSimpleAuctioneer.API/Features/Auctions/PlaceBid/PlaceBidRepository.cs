@@ -1,32 +1,14 @@
-﻿using Dapper;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using NetSimpleAuctioneer.API.Application.Policies;
 using NetSimpleAuctioneer.API.Database;
 using NetSimpleAuctioneer.API.Features.Auctions.Shared;
 using NetSimpleAuctioneer.API.Features.Shared;
-using Npgsql;
 using Polly;
 
 namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
 {
     public interface IPlaceBidRepository
     {
-        /// <summary>
-        /// Get the auction information for the given auction ID
-        /// </summary>
-        /// <param name="auctionId"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        Task<AuctionInformation?> GetAuctionInformation(Guid auctionId, CancellationToken cancellationToken);
-
-        /// <summary>
-        /// Get the auction information for the given auction ID
-        /// </summary>
-        /// <param name="auctionId"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        Task<BidInformation?> GetHighestBidForAuctionAsync(Guid auctionId, CancellationToken cancellationToken);
-
         /// <summary>
         /// Places a bid for the given auction
         /// </summary>
@@ -40,39 +22,15 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
 
     public class PlaceBidRepository(AuctioneerDbContext context, ILogger<PlaceBidRepository> logger, IPolicyProvider policyProvider) : IPlaceBidRepository
     {
-        public async Task<AuctionInformation?> GetAuctionInformation(Guid auctionId, CancellationToken cancellationToken)
-        {
-            await using var connection = new NpgsqlConnection(GetConnectionString());
-            await connection.OpenAsync(cancellationToken);
-
-            var query = "SELECT v.startingbid MinimumBidAmount, a.EndDate FROM auction a JOIN vehicle v ON v.id = a.vehicleid WHERE a.id = @auctionId;";
-
-            // Use CommandDefinition to pass the cancellation token
-            var command = new CommandDefinition(query, new { auctionId }, cancellationToken: cancellationToken);
-            return await connection.QuerySingleOrDefaultAsync<AuctionInformation?>(command);
-        }
-
-        public async Task<BidInformation?> GetHighestBidForAuctionAsync(Guid auctionId, CancellationToken cancellationToken)
-        {
-            await using var connection = new NpgsqlConnection(GetConnectionString());
-            await connection.OpenAsync(cancellationToken);
-
-            var query = "SELECT bidamount, biddersemail FROM bid WHERE auctionid = @auctionId ORDER BY bidamount DESC LIMIT 1";
-
-            // Use CommandDefinition to pass the cancellation token
-            var command = new CommandDefinition(query, new { auctionId }, cancellationToken: cancellationToken);
-            return await connection.QuerySingleOrDefaultAsync<BidInformation?>(command);
-        }
-
         public async Task<SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>> PlaceBidAsync(Guid auctionId, string bidderEmail, decimal bidAmount, CancellationToken cancellationToken)
         {
+            // Retrieve policies from the PolicyProvider
+            var retryPolicy = policyProvider.GetRetryPolicy();
+            var circuitBreakerPolicy = policyProvider.GetCircuitBreakerPolicy();
+
             try
             {
-                // Retrieve policies from the PolicyProvider
-                var retryPolicy = policyProvider.GetRetryPolicy();
-                var circuitBreakerPolicy = policyProvider.GetCircuitBreakerPolicy();
-
-                // Retry the database operation with Polly policy - cannot return a value directly, so an exception is thrown and caught
+                // Retry the database operation with Polly policy - cannot return a value directly, so an exception is thrown, caught and handled
                 await Policy.WrapAsync(retryPolicy, circuitBreakerPolicy).ExecuteAsync(async () =>
                 {
                     // Check if the auction exists
@@ -136,24 +94,8 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
                 return SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>.Failure(PlaceBidErrorCode.InternalError);
             }
         }
-
-        private string GetConnectionString()
-        {
-            // Access the connection string directly
-            var connection = context.Database.GetDbConnection();
-            return connection.ConnectionString;
-        }
     }
 
-    public record AuctionInformation
-    {
-        public decimal MinimumBidAmount { get; init; }
-        public DateTime? EndDate { get; init; }
-    }
-
-    public record BidInformation
-    {
-        public decimal BidAmount { get; init; }
-        public string BiddersEmail { get; init; } = default!;
-    }
+    public class BidderHasHigherBidException() : Exception { }
+    public class BidAmountTooLowException() : Exception { }
 }

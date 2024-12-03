@@ -1,8 +1,10 @@
 ﻿using Dapper;
 using Microsoft.EntityFrameworkCore;
+using NetSimpleAuctioneer.API.Application.Policies;
 using NetSimpleAuctioneer.API.Database;
 using NetSimpleAuctioneer.API.Features.Shared;
 using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
+using Polly;
 
 namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
 {
@@ -20,7 +22,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
         Task<SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>> SearchVehiclesAsync(string? manufacturer, string? model, int? year, VehicleType? vehicleType, CancellationToken cancellationToken);
     }
 
-    public class SearchRepository(AuctioneerDbContext context, ILogger<SearchRepository> logger) : ISearchRepository
+    public class SearchRepository(AuctioneerDbContext context, ILogger<SearchRepository> logger, IPolicyProvider policyProvider) : ISearchRepository
     {
         public async Task<SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>> SearchVehiclesAsync(string? manufacturer, string? model, int? year, VehicleType? vehicleType, CancellationToken cancellationToken)
         {
@@ -35,11 +37,21 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
                     AND (@VehicleType IS NULL OR vehicleType = @vehicleType)
                     AND (a.vehicleid IS NULL OR a.enddate IS NOT NULL)";
 
+            // Retrieve policies from the PolicyProvider
+            var retryPolicy = policyProvider.GetRetryPolicyWithoutConcurrencyException();
+            var circuitBreakerPolicy = policyProvider.GetCircuitBreakerPolicy();
+
             try
             {
                 using var connection = context.Database.GetDbConnection();
                 var command = new CommandDefinition(query, new { manufacturer, model, year, vehicleType }, cancellationToken: cancellationToken);
-                var result = await connection.QueryAsync<SearchVehicleResult>(command);
+
+                // Retry the database operation with Polly policy
+                IEnumerable<SearchVehicleResult> result = await Policy.WrapAsync(retryPolicy, circuitBreakerPolicy).ExecuteAsync(async () =>
+                {
+                    return await connection.QueryAsync<SearchVehicleResult>(command);
+                });
+
                 return SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>.Success(result);
             }
             catch (Exception ex)

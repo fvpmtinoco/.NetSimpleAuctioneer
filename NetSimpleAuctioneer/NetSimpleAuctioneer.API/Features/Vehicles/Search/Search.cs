@@ -12,7 +12,8 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
     public class SearchVehicleController(IMediator mediator) : VehiclesControllerBase(mediator)
     {
         /// <summary>
-        /// Search for vehicles that match the provided criteria and that are in a active auction or not in a closed auction
+        /// Searches for vehicles based on the specified criteria, ensuring that the vehicles are either currently in an active auction 
+        /// or are not part of a closed auction.
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
@@ -26,13 +27,13 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
 
             if (response.HasError)
             {
-                var result = response.Error switch
+                var action = response.Error switch
                 {
                     SearchVehicleErrorCode.InvalidYear => StatusCode(StatusCodes.Status422UnprocessableEntity, response.Error.Value),
                     _ => StatusCode(StatusCodes.Status500InternalServerError, response.Error!.Value)
                 };
 
-                return result;
+                return action;
             }
             return StatusCode(StatusCodes.Status200OK, response.Result);
         }

@@ -19,7 +19,7 @@
         }
 
         // Factory method for success with result
-        public static SuccessOrError<T, TError> Success(T model) => new SuccessOrError<T, TError>(model);
+        public static SuccessOrError<T, TError> Success(T result) => new SuccessOrError<T, TError>(result);
 
         // Factory method for failure with error
         public static SuccessOrError<T, TError> Failure(TError errorCode) =>

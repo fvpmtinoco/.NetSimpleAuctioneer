@@ -7,10 +7,13 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddSedan
 {
     public record AddSedanCommand(Guid Id, string Manufacturer, string Model, int Year, decimal StartingBid, int NumberOfDoors) : IRequest<VoidOrError<AddVehicleErrorCode>>;
 
-    public class AddSedanHandler(IVehicleRepository commonRepository) : IRequestHandler<AddSedanCommand, VoidOrError<AddVehicleErrorCode>>
+    public class AddSedanHandler(IVehicleRepository commonRepository, IVehicleService vehicleService) : IRequestHandler<AddSedanCommand, VoidOrError<AddVehicleErrorCode>>
     {
         public async Task<VoidOrError<AddVehicleErrorCode>> Handle(AddSedanCommand request, CancellationToken cancellationToken)
         {
+            if (!vehicleService.IsVehicleYearValid(request.Year))
+                return VoidOrError<AddVehicleErrorCode>.Failure(AddVehicleErrorCode.InvalidYear);
+
             var sedan = new Vehicle
             {
                 Id = request.Id,
@@ -22,12 +25,12 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddSedan
                 NumberOfDoors = request.NumberOfDoors
             };
 
-            var result = await commonRepository.AddWithRetryAsync(sedan, cancellationToken);
+            var result = await commonRepository.AddVehicleAsync(sedan, cancellationToken);
 
             if (result == null)
                 return VoidOrError<AddVehicleErrorCode>.Success();
 
-            return VoidOrError<AddVehicleErrorCode>.Failure(result.Value);
+            return result;
         }
     }
 }

@@ -7,10 +7,13 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddHatchback
 {
     public record AddHatchbackCommand(Guid Id, string Manufacturer, string Model, int Year, decimal StartingBid, int NumberOfDoors) : IRequest<VoidOrError<AddVehicleErrorCode>>;
 
-    public class AddHatchbackHandler(IVehicleRepository commonRepository) : IRequestHandler<AddHatchbackCommand, VoidOrError<AddVehicleErrorCode>>
+    public class AddHatchbackHandler(IVehicleRepository commonRepository, IVehicleService vehicleService) : IRequestHandler<AddHatchbackCommand, VoidOrError<AddVehicleErrorCode>>
     {
         public async Task<VoidOrError<AddVehicleErrorCode>> Handle(AddHatchbackCommand request, CancellationToken cancellationToken)
         {
+            if (!vehicleService.IsVehicleYearValid(request.Year))
+                return VoidOrError<AddVehicleErrorCode>.Failure(AddVehicleErrorCode.InvalidYear);
+
             var hatchback = new Vehicle
             {
                 Id = request.Id,
@@ -22,12 +25,9 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddHatchback
                 NumberOfDoors = request.NumberOfDoors
             };
 
-            var result = await commonRepository.AddWithRetryAsync(hatchback, cancellationToken);
+            var result = await commonRepository.AddVehicleAsync(hatchback, cancellationToken);
 
-            if (result == null)
-                return VoidOrError<AddVehicleErrorCode>.Success();
-
-            return VoidOrError<AddVehicleErrorCode>.Failure(result.Value);
+            return result;
         }
     }
 }

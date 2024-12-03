@@ -35,6 +35,8 @@ builder.Services.AddScoped<IStartAuctionRepository, StartAuctionRepository>();
 builder.Services.AddScoped<ICloseAuctionRepository, CloseAuctionRepository>();
 builder.Services.AddScoped<IPlaceBidRepository, PlaceBidRepository>();
 builder.Services.AddScoped<ISearchRepository, SearchRepository>();
+builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
+builder.Services.AddSingleton<IVehicleService, VehicleService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

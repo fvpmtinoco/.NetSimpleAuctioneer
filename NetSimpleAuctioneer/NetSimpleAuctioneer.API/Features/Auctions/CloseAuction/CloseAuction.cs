@@ -63,8 +63,10 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.CloseAuction
     {
         [Description("Provided auction identification not found")]
         AuctionNotFound,
+
         [Description("The auction for the provided identification has already closed")]
         AuctionAlreadyClosed,
+
         [Description("Internal error ending the auction")]
         InternalError
     }

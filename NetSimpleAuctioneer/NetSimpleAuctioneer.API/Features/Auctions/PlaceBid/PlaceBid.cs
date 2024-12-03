@@ -2,14 +2,11 @@
 using Microsoft.AspNetCore.Mvc;
 using NetSimpleAuctioneer.API.Features.Auctions.Shared;
 using NetSimpleAuctioneer.API.Features.Shared;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
 {
-    /// <summary>
-    /// Controller to place a bid in an auction
-    /// </summary>
-    /// <param name="mediator"></param>
     public class PlaceBidController(IMediator mediator) : AuctionsControllerBase(mediator)
     {
         /// <summary>
@@ -40,7 +37,7 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
                 return action;
             }
 
-            return Ok();
+            return Ok(new PlaceBidResponse { BidId = response.Result.BidId });
         }
     }
 
@@ -71,38 +68,38 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
     }
 
     /// <summary>
+    /// Response to placing a bid request
+    /// </summary>
+    public class PlaceBidResponse
+    {
+        /// <summary>
+        /// Bid identification
+        /// </summary>
+        [Required]
+        public Guid BidId { get; set; }
+    }
+
+    /// <summary>
     /// Error codes for placing a bid in an auction
     /// </summary>
     public enum PlaceBidErrorCode
     {
-        /// <summary>
-        /// Provided auction identification not found
-        /// </summary>
+        [Description("Provided auction identification not found")]
         AuctionNotFound,
 
-        /// <summary>
-        /// The auction for the provided identification has already closed
-        /// </summary>
+        [Description("The auction for the provided identification has already closed")]
         AuctionAlreadyClosed,
 
-        /// <summary>
-        /// The bid amount is lower than the vehicle's minimum bid
-        /// </summary>
+        [Description("The bid amount is lower than the vehicle's minimum bid")]
         BidAmountTooLow,
 
-        /// <summary>
-        /// Existing higher bid in the current auction
-        /// </summary>
+        [Description("Existing higher bid in the current auction")]
         ExistingHigherBid,
 
-        /// <summary>
-        /// Bidder has already the higher bid
-        /// </summary>
+        [Description("Bidder has already the higher bid")]
         BidderHasHigherBid,
 
-        /// <summary>
-        /// Internal error placing the bid
-        /// </summary>
+        [Description("Internal error placing the bid")]
         InternalError
     }
 }

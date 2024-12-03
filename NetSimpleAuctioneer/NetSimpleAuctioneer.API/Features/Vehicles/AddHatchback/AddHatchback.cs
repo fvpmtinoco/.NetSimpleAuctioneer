@@ -9,10 +9,6 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddHatchback
 {
     #region Controller
 
-    /// <summary>
-    /// Controller to add a hatchback vehicle
-    /// </summary>
-    /// <param name="mediator"></param>
     public class AddHatchbackController(IMediator mediator) : VehiclesControllerBase(mediator)
     {
         /// <summary>
@@ -23,12 +19,23 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddHatchback
         [HttpPost, ActionName("addHatchback")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResult<AddVehicleErrorCode>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ErrorResult<AddVehicleErrorCode>), StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(typeof(ErrorResult<AddVehicleErrorCode>), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> AddHatchback([FromBody, Required] AddHatchbackRequest request)
         {
             var response = await mediator.Send(new AddHatchbackCommand(request.Id, request.Manufacturer, request.Model, request.Year, request.StartingBid, request.NumberOfDoors));
 
             if (response.HasError)
-                return Conflict(response.Error);
+            {
+                var action = response.Error switch
+                {
+                    AddVehicleErrorCode.DuplicatedVehicle => StatusCode(StatusCodes.Status409Conflict, response.Error.Value),
+                    AddVehicleErrorCode.InvalidYear => StatusCode(StatusCodes.Status422UnprocessableEntity, response.Error.Value),
+                    _ => StatusCode(StatusCodes.Status500InternalServerError, response.Error!.Value)
+                };
+
+                return action;
+            }
 
             return Created();
         }

@@ -7,10 +7,13 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddTruck
 {
     public record AddTruckCommand(Guid Id, string Manufacturer, string Model, int Year, decimal StartingBid, int LoadCapacity) : IRequest<VoidOrError<AddVehicleErrorCode>>;
 
-    public class AddTruckHandler(IVehicleRepository commonRepository) : IRequestHandler<AddTruckCommand, VoidOrError<AddVehicleErrorCode>>
+    public class AddTruckHandler(IVehicleRepository commonRepository, IVehicleService vehicleService) : IRequestHandler<AddTruckCommand, VoidOrError<AddVehicleErrorCode>>
     {
         public async Task<VoidOrError<AddVehicleErrorCode>> Handle(AddTruckCommand request, CancellationToken cancellationToken)
         {
+            if (!vehicleService.IsVehicleYearValid(request.Year))
+                return VoidOrError<AddVehicleErrorCode>.Failure(AddVehicleErrorCode.InvalidYear);
+
             var truck = new Vehicle
             {
                 Id = request.Id,
@@ -22,12 +25,12 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddTruck
                 LoadCapacity = request.LoadCapacity
             };
 
-            var result = await commonRepository.AddWithRetryAsync(truck, cancellationToken);
+            var result = await commonRepository.AddVehicleAsync(truck, cancellationToken);
 
             if (result == null)
                 return VoidOrError<AddVehicleErrorCode>.Success();
 
-            return VoidOrError<AddVehicleErrorCode>.Failure(result.Value);
+            return result;
         }
     }
 }

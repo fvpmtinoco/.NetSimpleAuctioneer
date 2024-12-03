@@ -21,11 +21,11 @@ namespace NetSimpleAuctioneer.API.Application.Policies
         IAsyncPolicy GetCircuitBreakerPolicy();
 
         /// <summary>
-        /// Gets the retry policy specifically designed to handle concurrency exceptions.
+        /// Gets the retry policy specifically designed to discard concurrency exceptions.
         /// Retries up to 3 times with exponential backoff (2, 4, 8 seconds).
         /// </summary>
         /// <returns>A retry policy that retries up to 3 times with exponential backoff.</returns>
-        IAsyncPolicy GetRetryPolicyWithConcurrencyException();
+        IAsyncPolicy GetRetryPolicyWithoutConcurrencyException();
     }
 
     public class PolicyProvider(ILogger<PolicyProvider> logger) : IPolicyProvider
@@ -59,7 +59,7 @@ namespace NetSimpleAuctioneer.API.Application.Policies
                                               });
         }
 
-        public IAsyncPolicy GetRetryPolicyWithConcurrencyException()
+        public IAsyncPolicy GetRetryPolicyWithoutConcurrencyException()
         {
             return Policy.Handle<DbUpdateException>(ex => !(ex.InnerException is PostgresException postgresEx && postgresEx.SqlState == "23505"))
                          .WaitAndRetryAsync(3, attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
