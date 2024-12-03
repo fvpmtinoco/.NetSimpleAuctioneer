@@ -1,5 +1,5 @@
 ﻿using MediatR;
-using NetSimpleAuctioneer.API.Features.Shared;
+using NetSimpleAuctioneer.API.Application;
 
 namespace NetSimpleAuctioneer.API.Features.Auctions.CloseAuction
 {

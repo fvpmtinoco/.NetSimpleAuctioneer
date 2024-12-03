@@ -1,6 +1,5 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using NetSimpleAuctioneer.API.Features.Shared;
 using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations;
@@ -18,9 +17,9 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddHatchback
         /// <returns></returns>
         [HttpPost, ActionName("addHatchback")]
         [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(ErrorResult<AddVehicleErrorCode>), StatusCodes.Status409Conflict)]
-        [ProducesResponseType(typeof(ErrorResult<AddVehicleErrorCode>), StatusCodes.Status422UnprocessableEntity)]
-        [ProducesResponseType(typeof(ErrorResult<AddVehicleErrorCode>), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(AddVehicleErrorCode), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(AddVehicleErrorCode), StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(typeof(AddVehicleErrorCode), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> AddHatchback([FromBody, Required] AddHatchbackRequest request)
         {
             var response = await mediator.Send(new AddHatchbackCommand(request.Id, request.Manufacturer, request.Model, request.Year, request.StartingBid, request.NumberOfDoors));

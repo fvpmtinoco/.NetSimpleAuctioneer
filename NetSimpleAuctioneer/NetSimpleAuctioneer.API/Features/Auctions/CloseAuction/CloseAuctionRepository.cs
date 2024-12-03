@@ -1,8 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Application.Policies;
 using NetSimpleAuctioneer.API.Database;
-using NetSimpleAuctioneer.API.Features.Auctions.Shared;
-using NetSimpleAuctioneer.API.Features.Shared;
 using Polly;
 
 namespace NetSimpleAuctioneer.API.Features.Auctions.CloseAuction
@@ -22,43 +21,42 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.CloseAuction
     {
         public async Task<SuccessOrError<CloseAuctionCommandResult, CloseAuctionErrorCode>> CloseAuctionAsync(Guid auctionId, CancellationToken cancellationToken)
         {
-            // Retrieve policies from the PolicyProvider - cannot return a value directly, so an exception is thrown, caught and handled
-            var retryPolicy = policyProvider.GetRetryPolicyWithoutConcurrencyException();
-            var circuitBreakerPolicy = policyProvider.GetCircuitBreakerPolicy();
-
             try
             {
+                // Retrieve policies from the PolicyProvider
+                var retryPolicy = policyProvider.GetRetryPolicyWithoutConcurrencyException();
+                var circuitBreakerPolicy = policyProvider.GetCircuitBreakerPolicy();
+
                 // Retry the database operation with Polly policy - cannot return a value directly, so an exception is thrown and caught
-                await Policy.WrapAsync(retryPolicy, circuitBreakerPolicy).ExecuteAsync(async () =>
+                var result = await Policy.WrapAsync(retryPolicy, circuitBreakerPolicy).ExecuteAsync(async ct =>
                 {
                     // Get the auction to check if it's still open
-                    var auction = await context.Auctions.SingleOrDefaultAsync(a => a.Id == auctionId, cancellationToken);
+                    var auction = await context.Auctions.SingleOrDefaultAsync(a => a.Id == auctionId, ct);
 
                     if (auction == null)
                     {
                         logger.LogWarning("Auction with ID {AuctionId} not found or already closed.", auctionId);
-                        throw new AuctionNotFoundException();
+                        return SuccessOrError<CloseAuctionCommandResult, CloseAuctionErrorCode>.Failure(CloseAuctionErrorCode.InvalidAuction);
                     }
                     if (auction.EndDate != null)
                     {
                         logger.LogWarning("Auction with ID {AuctionId} is already closed.", auctionId);
-                        throw new AuctionAlreadyClosedException();
+                        return SuccessOrError<CloseAuctionCommandResult, CloseAuctionErrorCode>.Failure(CloseAuctionErrorCode.AuctionAlreadyClosed);
                     }
 
                     // Set the EndDate to close the auction
                     auction.EndDate = DateTime.UtcNow;
 
                     // Save changes to the database
-                    await context.SaveChangesAsync(cancellationToken);
+                    await context.SaveChangesAsync(ct);
 
                     logger.LogInformation("Auction with ID {AuctionId} closed successfully.", auctionId);
-                });
+                    return SuccessOrError<CloseAuctionCommandResult, CloseAuctionErrorCode>.Success(new CloseAuctionCommandResult(auctionId));
+                }, cancellationToken);
 
-                return SuccessOrError<CloseAuctionCommandResult, CloseAuctionErrorCode>.Success(new CloseAuctionCommandResult(auctionId));
+                return result;
             }
-            catch (AuctionNotFoundException) { return SuccessOrError<CloseAuctionCommandResult, CloseAuctionErrorCode>.Failure(CloseAuctionErrorCode.AuctionNotFound); }
-            catch (AuctionAlreadyClosedException) { return SuccessOrError<CloseAuctionCommandResult, CloseAuctionErrorCode>.Failure(CloseAuctionErrorCode.AuctionAlreadyClosed); }
-            catch (DbUpdateException ex)
+            catch (Exception ex)
             {
                 logger.LogError(ex, "Error closing auction with ID: {AuctionId}", auctionId);
                 return SuccessOrError<CloseAuctionCommandResult, CloseAuctionErrorCode>.Failure(CloseAuctionErrorCode.InternalError);

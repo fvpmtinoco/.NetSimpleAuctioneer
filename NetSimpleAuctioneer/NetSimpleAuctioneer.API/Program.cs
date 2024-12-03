@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using NetSimpleAuctioneer.API.Application.Policies;
 using NetSimpleAuctioneer.API.Database;
 using NetSimpleAuctioneer.API.Features.Auctions.CloseAuction;
@@ -18,12 +19,22 @@ builder.Services.AddControllers();
 
 // PostgreSQL connection string
 builder.Services.AddDbContext<AuctioneerDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("AuctioneerDBConnectionString")));
+
+// Get connection string from appsettings
+builder.Services.Configure<ConnectionStrings>(builder.Configuration.GetSection(nameof(ConnectionStrings)));
 
 // Register MediatR services from the current assembly
 builder.Services.AddMediatR(config =>
 {
     config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+});
+
+// Register IDatabaseConnection as NpgsqlDatabaseConnection
+builder.Services.AddScoped<IDatabaseConnection>(provider =>
+{
+    var connectionString = provider.GetRequiredService<IOptions<ConnectionStrings>>().Value.AuctioneerDBConnectionString;
+    return new NpgsqlDatabaseConnection(connectionString!);
 });
 
 // Register the PolicyProvider as IPolicyProvider (Polly policies)

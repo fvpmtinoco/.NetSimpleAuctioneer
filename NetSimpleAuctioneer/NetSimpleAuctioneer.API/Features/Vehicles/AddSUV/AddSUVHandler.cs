@@ -1,6 +1,6 @@
 ﻿using MediatR;
+using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Database;
-using NetSimpleAuctioneer.API.Features.Shared;
 using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
 
 namespace NetSimpleAuctioneer.API.Features.Vehicles.AddSUV

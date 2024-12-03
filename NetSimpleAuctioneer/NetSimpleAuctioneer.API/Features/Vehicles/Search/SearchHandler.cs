@@ -1,5 +1,5 @@
 ﻿using MediatR;
-using NetSimpleAuctioneer.API.Features.Shared;
+using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
 
 namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
@@ -15,7 +15,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
         public Guid? AuctionId { get; init; }
     }
 
-    public record SearchVehicleQuery(VehicleType? VehicleType, string? Manufacturer, string? Model, int? Year) : IRequest<SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>>;
+    public record SearchVehicleQuery(VehicleType? VehicleType, string? Manufacturer, string? Model, int? Year, int PageNumber, int PageSize) : IRequest<SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>>;
 
     public class SearchHandler(ISearchRepository searchRepository, IVehicleService vehicleService) : IRequestHandler<SearchVehicleQuery, SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>>
     {
@@ -24,7 +24,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
             if (request.Year.HasValue && !vehicleService.IsVehicleYearValid(request.Year.Value))
                 return SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>.Failure(SearchVehicleErrorCode.InvalidYear);
 
-            var result = await searchRepository.SearchVehiclesAsync(request.Manufacturer, request.Model, request.Year, request.VehicleType, cancellationToken);
+            var result = await searchRepository.SearchVehiclesAsync(request.Manufacturer, request.Model, request.Year, request.VehicleType, request.PageNumber, request.PageSize, cancellationToken);
 
             return result;
         }

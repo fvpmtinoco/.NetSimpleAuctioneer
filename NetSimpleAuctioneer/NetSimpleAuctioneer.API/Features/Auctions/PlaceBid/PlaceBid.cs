@@ -1,7 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Features.Auctions.Shared;
-using NetSimpleAuctioneer.API.Features.Shared;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
@@ -16,9 +16,9 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
         /// <returns></returns>
         [HttpPost, ActionName("placeBid")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResult<PlaceBidErrorCode>), StatusCodes.Status409Conflict)]
-        [ProducesResponseType(typeof(ErrorResult<PlaceBidErrorCode>), StatusCodes.Status422UnprocessableEntity)]
-        [ProducesResponseType(typeof(ErrorResult<PlaceBidErrorCode>), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(PlaceBidErrorCode), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(PlaceBidErrorCode), StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(typeof(PlaceBidErrorCode), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> PlaceBid([FromBody, Required] PlaceBidRequest request)
         {
             var response = await mediator.Send(new PlaceBidCommand(request.AuctionId, request.BidderEmail, request.BidAmount));
@@ -50,6 +50,7 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
         /// Auction identification
         /// </summary>
         [Required]
+        [NotEmptyGuid(ErrorMessage = "Auction Id cannot be empty.")]
         public Guid AuctionId { get; set; }
 
         /// <summary>
@@ -63,7 +64,7 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
         /// Bid amount
         /// </summary>
         [Required]
-        [Range(0.01, double.MaxValue, ErrorMessage = "Bid amount must be greater than 0.")]
+        [Range(0.01, 1000000000, ErrorMessage = "Bid amount must be greater than 0.")]
         public decimal BidAmount { get; set; }
     }
 

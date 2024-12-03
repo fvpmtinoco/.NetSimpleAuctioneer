@@ -1,4 +1,4 @@
-﻿namespace NetSimpleAuctioneer.API.Features.Shared
+﻿namespace NetSimpleAuctioneer.API.Application
 {
     public class SuccessOrError<T, TError> where TError : struct, Enum
     {

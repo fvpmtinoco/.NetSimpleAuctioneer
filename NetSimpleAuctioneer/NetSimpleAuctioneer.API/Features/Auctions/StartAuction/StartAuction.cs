@@ -1,7 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Features.Auctions.Shared;
-using NetSimpleAuctioneer.API.Features.Shared;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
@@ -18,9 +18,9 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.StartAuction
         /// <returns></returns>
         [HttpPost, ActionName("startAuction")]
         [ProducesResponseType(typeof(StartAuctionResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResult<StartAuctionErrorCode>), StatusCodes.Status409Conflict)]
-        [ProducesResponseType(typeof(ErrorResult<StartAuctionErrorCode>), StatusCodes.Status422UnprocessableEntity)]
-        [ProducesResponseType(typeof(ErrorResult<StartAuctionErrorCode>), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(StartAuctionErrorCode), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(StartAuctionErrorCode), StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(typeof(StartAuctionErrorCode), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> StartAuction([FromBody, Required] StartAuctionRequest request)
         {
             var response = await mediator.Send(new StartAuctionCommand(request.VehicleId));
@@ -28,8 +28,8 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.StartAuction
             {
                 var action = response.Error switch
                 {
-                    StartAuctionErrorCode.VehicleNotFound => StatusCode(StatusCodes.Status422UnprocessableEntity, StartAuctionErrorCode.VehicleNotFound),
-                    StartAuctionErrorCode.AuctionAlreadyActive => StatusCode(StatusCodes.Status409Conflict, StartAuctionErrorCode.AuctionAlreadyActive),
+                    StartAuctionErrorCode.InvalidVehicle => StatusCode(StatusCodes.Status422UnprocessableEntity, StartAuctionErrorCode.InvalidVehicle),
+                    StartAuctionErrorCode.AuctionForVehicleAlreadyActive => StatusCode(StatusCodes.Status409Conflict, StartAuctionErrorCode.AuctionForVehicleAlreadyActive),
                     _ => StatusCode(StatusCodes.Status500InternalServerError, StartAuctionErrorCode.InternalError),
                 };
 
@@ -53,6 +53,7 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.StartAuction
         /// Vehicle identification
         /// </summary>
         [Required]
+        [NotEmptyGuid(ErrorMessage = "Vehicle Id cannot be empty.")]
         public Guid VehicleId { get; set; }
     }
 
@@ -73,11 +74,11 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.StartAuction
     /// </summary>
     public enum StartAuctionErrorCode
     {
-        [Description("Provided vehicle identification not found")]
-        VehicleNotFound,
+        [Description("Provided vehicle identification is invalid")]
+        InvalidVehicle,
 
         [Description("An auction for the provided vehicle identification is already active")]
-        AuctionAlreadyActive,
+        AuctionForVehicleAlreadyActive,
 
         [Description("Internal error creating the auction")]
         InternalError

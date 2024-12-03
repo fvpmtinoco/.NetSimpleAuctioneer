@@ -1,7 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Features.Auctions.Shared;
-using NetSimpleAuctioneer.API.Features.Shared;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
@@ -18,9 +18,9 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.CloseAuction
         /// <returns></returns>
         [HttpPost, ActionName("closeAuction")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResult<CloseAuctionErrorCode>), StatusCodes.Status409Conflict)]
-        [ProducesResponseType(typeof(ErrorResult<CloseAuctionErrorCode>), StatusCodes.Status422UnprocessableEntity)]
-        [ProducesResponseType(typeof(ErrorResult<CloseAuctionErrorCode>), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(CloseAuctionErrorCode), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(CloseAuctionErrorCode), StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(typeof(CloseAuctionErrorCode), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CloseAuction([FromBody, Required] CloseAuctionRequest request)
         {
             var response = await mediator.Send(new CloseAuctionCommand(request.AuctionId));
@@ -28,7 +28,7 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.CloseAuction
             {
                 var action = response.Error switch
                 {
-                    CloseAuctionErrorCode.AuctionNotFound => StatusCode(StatusCodes.Status422UnprocessableEntity, CloseAuctionErrorCode.AuctionNotFound),
+                    CloseAuctionErrorCode.InvalidAuction => StatusCode(StatusCodes.Status422UnprocessableEntity, CloseAuctionErrorCode.InvalidAuction),
                     CloseAuctionErrorCode.AuctionAlreadyClosed => StatusCode(StatusCodes.Status409Conflict, CloseAuctionErrorCode.AuctionAlreadyClosed),
                     _ => StatusCode(StatusCodes.Status500InternalServerError, CloseAuctionErrorCode.InternalError),
                 };
@@ -53,6 +53,7 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.CloseAuction
         /// Auction identification to close
         /// </summary>
         [Required]
+        [NotEmptyGuid(ErrorMessage = "Auction Id cannot be empty.")]
         public Guid AuctionId { get; set; }
     }
 
@@ -61,8 +62,8 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.CloseAuction
     /// </summary>
     public enum CloseAuctionErrorCode
     {
-        [Description("Provided auction identification not found")]
-        AuctionNotFound,
+        [Description("Provided auction identification is invalid")]
+        InvalidAuction,
 
         [Description("The auction for the provided identification has already closed")]
         AuctionAlreadyClosed,

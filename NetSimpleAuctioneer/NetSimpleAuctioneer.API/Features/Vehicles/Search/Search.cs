@@ -1,6 +1,5 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using NetSimpleAuctioneer.API.Features.Shared;
 using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -18,12 +17,12 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
         /// <param name="request"></param>
         /// <returns></returns>
         [HttpGet, ActionName("search")]
-        [ProducesResponseType(typeof(SearchVehiclesResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResult<SearchVehicleErrorCode>), StatusCodes.Status422UnprocessableEntity)]
-        [ProducesResponseType(typeof(ErrorResult<SearchVehicleErrorCode>), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(IEnumerable<SearchVehiclesResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SearchVehicleErrorCode), StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(typeof(SearchVehicleErrorCode), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> SearchVehicles([FromQuery, Required] SearchVehiclesRequest request)
         {
-            var response = await mediator.Send(new SearchVehicleQuery(request.VehicleType, request.Manufacturer, request.Model, request.Year));
+            var response = await mediator.Send(new SearchVehicleQuery(request.VehicleType, request.Manufacturer, request.Model, request.Year, request.PageNumber!.Value, request.PageSize!.Value));
 
             if (response.HasError)
             {
@@ -35,7 +34,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
 
                 return action;
             }
-            return StatusCode(StatusCodes.Status200OK, response.Result);
+            return StatusCode(StatusCodes.Status200OK, response.Result.Select(r => new SearchVehiclesResponse(r.Id, r.VehicleType, r.Manufacturer, r.Model, r.Year, r.StartingBid, r.AuctionId)));
         }
     }
 
@@ -48,11 +47,38 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
     /// </summary>
     public class SearchVehiclesRequest
     {
+        /// <summary>
+        /// Vehicle type
+        /// </summary>
         public VehicleType? VehicleType { get; set; }
+
+        /// <summary>
+        /// Manufacturer
+        /// </summary>
         public string? Manufacturer { get; set; }
+
+        /// <summary>
+        /// Model
+        /// </summary>
         public string? Model { get; set; }
+
+        /// <summary>
+        /// Year
+        /// </summary>
         [Range(1900, Int32.MaxValue)]
         public int? Year { get; set; }
+
+        /// <summary>
+        /// Pagination property - Page number 
+        /// </summary>
+        [Range(1, int.MaxValue)]
+        public int? PageNumber { get; set; } = 1;
+
+        /// <summary>
+        /// Pagination property - Page size
+        /// </summary>
+        [Range(1, int.MaxValue)]
+        public int? PageSize { get; set; } = 10;
     }
 
     /// <summary>
