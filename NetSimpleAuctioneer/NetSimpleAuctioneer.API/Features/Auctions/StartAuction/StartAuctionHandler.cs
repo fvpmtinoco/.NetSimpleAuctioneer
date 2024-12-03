@@ -3,36 +3,47 @@ using NetSimpleAuctioneer.API.Features.Shared;
 
 namespace NetSimpleAuctioneer.API.Features.Auctions.StartAuction
 {
-    public record StartAuctionCommand(Guid VehicleId) : IRequest<VoidOrError<StartAuctionErrorCode>>;
+    public record StartAuctionCommand(Guid VehicleId) : IRequest<SuccessOrError<StartAuctionCommandResult, StartAuctionErrorCode>>;
+    public record StartAuctionCommandResult(Guid AuctionId);
 
-    public class StartAuctionHandler : IRequestHandler<StartAuctionCommand, VoidOrError<StartAuctionErrorCode>>
+    public class StartAuctionHandler(IStartAuctionRepository startAuctionRepository, ILogger<IStartAuctionRepository> logger) : IRequestHandler<StartAuctionCommand, SuccessOrError<StartAuctionCommandResult, StartAuctionErrorCode>>
     {
-        public async Task<VoidOrError<StartAuctionErrorCode>> Handle(StartAuctionCommand request, CancellationToken cancellationToken)
+        public async Task<SuccessOrError<StartAuctionCommandResult, StartAuctionErrorCode>> Handle(StartAuctionCommand request, CancellationToken cancellationToken)
         {
-            //// Check if the vehicle exists in the inventory
-            //var vehicle = await _vehicleRepository.GetVehicleByIdAsync(request.VehicleId);
-            //if (vehicle == null)
-            //{
-            //    return VoidOrError<StartAuctionErrorCode>.Failure(StartAuctionErrorCode.VehicleNotFound);
-            //}
+            var validationResult = await ValidateRequestAsync(request.VehicleId, cancellationToken);
 
-            //// Check if the vehicle already has an active auction
-            //var existingAuction = await _auctionRepository.GetActiveAuctionByVehicleIdAsync(request.VehicleId);
-            //if (existingAuction != null)
-            //{
-            //    return VoidOrError<StartAuctionErrorCode>.Failure(StartAuctionErrorCode.AuctionAlreadyActive);
-            //}
+            if (validationResult != null)
+                return validationResult;
 
-            //// Create and start the auction
-            //var auction = new Auction
-            //{
-            //    VehicleId = request.VehicleId,
-            //    StartTime = DateTime.UtcNow,
-            //    IsActive = true
-            //};
+            var result = await startAuctionRepository.StartAuctionAsync(request.VehicleId, cancellationToken);
 
-            //await _auctionRepository.AddAuctionAsync(auction);
-            return VoidOrError<StartAuctionErrorCode>.Success();
+            if (result.HasError)
+                logger.LogError("Failed to start auction for vehicle ID {VehicleId}. Error: {ErrorCode}.", request.VehicleId, result.Error);
+            else
+                logger.LogInformation("Auction successfully started for vehicle ID {VehicleId}.", request.VehicleId);
+
+            return result;
+        }
+
+        private async Task<SuccessOrError<StartAuctionCommandResult, StartAuctionErrorCode>?> ValidateRequestAsync(Guid vehicleId, CancellationToken cancellationToken)
+        {
+            // Check if the vehicle exists
+            var vehicle = await startAuctionRepository.GetVehicleByIdAsync(vehicleId, cancellationToken);
+            if (vehicle == null)
+            {
+                logger.LogWarning("Vehicle with ID {VehicleId} not found.", vehicleId);
+                return SuccessOrError<StartAuctionCommandResult, StartAuctionErrorCode>.Failure(StartAuctionErrorCode.VehicleNotFound);
+            }
+
+            // Check if there is already an active auction for the vehicle
+            var existingAuction = await startAuctionRepository.GetActiveAuctionByVehicleIdAsync(vehicleId, cancellationToken);
+            if (existingAuction != null)
+            {
+                logger.LogWarning("An active auction already exists for vehicle ID {VehicleId}.", vehicleId);
+                return SuccessOrError<StartAuctionCommandResult, StartAuctionErrorCode>.Failure(StartAuctionErrorCode.AuctionAlreadyActive);
+            }
+
+            return null;
         }
     }
 }

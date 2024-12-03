@@ -37,7 +37,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Shared
             catch (Exception ex)
             {
                 logger.LogError(ex, "An unknown error occurred while adding a vehicle with ID {VehicleId}", vehicle.Id);
-                return AddVehicleErrorCode.UnknownError;
+                return AddVehicleErrorCode.InternalError;
             }
         }
     }

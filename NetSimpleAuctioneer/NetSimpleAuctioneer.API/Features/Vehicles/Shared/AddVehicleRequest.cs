@@ -17,7 +17,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Shared
         public string Model { get; set; } = default!;
 
         [Required]
-        [Range(1900, int.MaxValue)]
+        [Range(1900, 2100)]
         public int Year { get; set; }
 
         [Required]

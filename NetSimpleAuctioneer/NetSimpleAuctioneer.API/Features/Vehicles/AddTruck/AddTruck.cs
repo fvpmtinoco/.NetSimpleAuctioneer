@@ -12,12 +12,12 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddTruck
     {
         [HttpPost, ActionName("addTruck")]
         [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(List<ErrorResult<AddVehicleErrorCode>>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ErrorResult<AddVehicleErrorCode>), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> AddTruck([FromBody, Required] AddTruckRequest request)
         {
             var response = await mediator.Send(new AddTruckCommand(request.Id, request.Manufacturer, request.Model, request.Year, request.StartingBid, request.LoadCapacity));
-            if (response.HasErrors)
-                return Conflict(response.Errors);
+            if (response.HasError)
+                return Conflict(response.Error);
 
             return Created();
         }

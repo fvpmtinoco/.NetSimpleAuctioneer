@@ -1,25 +1,32 @@
 ﻿using MediatR;
+using NetSimpleAuctioneer.API.Features.Shared;
 using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
 
 namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
 {
-    internal class SearchVehicleResult(Guid id, string type, string manufacturer, string model, int year, Dictionary<string, object> attributes)
+    public record SearchVehicleResult
     {
-        public Guid Id { get; } = id;
-        public string Type { get; } = type;
-        public string Manufacturer { get; } = manufacturer;
-        public string Model { get; } = model;
-        public int Year { get; } = year;
-        public Dictionary<string, object> Attributes { get; } = attributes;
+        public Guid Id { get; init; }
+        public VehicleType VehicleType { get; init; }
+        public string Manufacturer { get; init; } = default!;
+        public string Model { get; init; } = default!;
+        public int Year { get; init; }
+        public decimal StartingBid { get; init; }
+        public Guid? AuctionId { get; init; }
     }
 
-    public record SearchVehicleQuery(VehicleType? VehicleType, string? Manufacturer, string? Model, int? Year) : IRequest<SearchVehicleResult>;
+    public record SearchVehicleQuery(VehicleType? VehicleType, string? Manufacturer, string? Model, int? Year) : IRequest<SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>>;
 
-    public class SearchHandler : IRequestHandler<SearchVehicleQuery, SearchVehicleResult>
+    public class SearchHandler(ISearchRepository searchRepository) : IRequestHandler<SearchVehicleQuery, SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>>
     {
-        Task<SearchVehicleResult> IRequestHandler<SearchVehicleQuery, SearchVehicleResult>.Handle(SearchVehicleQuery request, CancellationToken cancellationToken)
+        public async Task<SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>> Handle(SearchVehicleQuery request, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            if (request.Year > DateTime.Now.Year)
+                return SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>.Failure(SearchVehicleErrorCode.InvalidYear);
+
+            var result = await searchRepository.SearchVehiclesAsync(request.Manufacturer, request.Model, request.Year, request.VehicleType, cancellationToken);
+
+            return result;
         }
     }
 }

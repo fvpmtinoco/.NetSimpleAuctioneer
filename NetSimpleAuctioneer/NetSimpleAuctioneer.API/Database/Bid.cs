@@ -7,8 +7,5 @@
         public decimal BidAmount { get; set; }
         public string BidderEmail { get; set; } = default!;
         public DateTime Timestamp { get; set; }
-
-        // Navigational property
-        public required Auction Auction { get; set; }
     }
 }

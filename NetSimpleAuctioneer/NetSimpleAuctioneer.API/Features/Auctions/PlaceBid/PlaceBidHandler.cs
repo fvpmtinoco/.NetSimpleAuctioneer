@@ -3,46 +3,64 @@ using NetSimpleAuctioneer.API.Features.Shared;
 
 namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
 {
-    public record PlaceBidCommand(Guid VehicleId, string BidderName, decimal BidAmount) : IRequest<VoidOrError<PlaceBidErrorCode>>;
+    public record PlaceBidCommand(Guid AuctionId, string BidderEmail, decimal BidAmount) : IRequest<SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>>;
+    public record PlaceBidCommandResult(Guid BidId);
 
-    public class PlaceBidHandler : IRequestHandler<PlaceBidCommand, VoidOrError<PlaceBidErrorCode>>
+
+    public class PlaceBidHandler(IPlaceBidRepository placeBidRepository, ILogger<PlaceBidHandler> logger) : IRequestHandler<PlaceBidCommand, SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>>
     {
-        public async Task<VoidOrError<PlaceBidErrorCode>> Handle(PlaceBidCommand request, CancellationToken cancellationToken)
+        public async Task<SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>> Handle(PlaceBidCommand request, CancellationToken cancellationToken)
         {
-            //// Retrieve the active auction for the vehicle
-            //var auction = await _auctionRepository.GetActiveAuctionByVehicleIdAsync(request.VehicleId);
-            //if (auction == null)
-            //{
-            //    return VoidOrError<PlaceBidErrorCode>.Failure(PlaceBidErrorCode.AuctionNotFound);
-            //}
+            // Check if the auction exists
+            var auctionInformation = await placeBidRepository.GetAuctionInformation(request.AuctionId, cancellationToken);
+            if (auctionInformation == null)
+            {
+                logger.LogWarning("Auction with ID {AuctionId} not found.", request.AuctionId);
+                return SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>.Failure(PlaceBidErrorCode.AuctionNotFound);
+            }
 
-            //// Check if the auction is active
-            //if (!auction.IsActive)
-            //{
-            //    return VoidOrError<PlaceBidErrorCode>.Failure(PlaceBidErrorCode.AuctionNotActive);
-            //}
+            // Check if the auction is closed
+            if (auctionInformation.EndDate.HasValue)
+            {
+                logger.LogWarning("Auction with ID {AuctionId} has already closed.", request.AuctionId);
+                return SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>.Failure(PlaceBidErrorCode.AuctionAlreadyClosed);
+            }
 
-            //// Validate the bid amount
-            //var currentHighestBid = auction.Bids.Any() ? auction.Bids.Max(b => b.Amount) : auction.StartingBid;
-            //if (request.BidAmount <= currentHighestBid)
-            //{
-            //    return VoidOrError<PlaceBidErrorCode>.Failure(PlaceBidErrorCode.BidAmountTooLow);
-            //}
+            // Check if the bid amount is too low
+            if (request.BidAmount < auctionInformation.MinimumBidAmount)
+            {
+                logger.LogWarning("Bid amount of {BidAmount} is too low for auction with ID {AuctionId}.", request.BidAmount, request.AuctionId);
+                return SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>.Failure(PlaceBidErrorCode.BidAmountTooLow);
+            }
 
-            //// Place the bid
-            //var bid = new Bid
-            //{
-            //    AuctionId = auction.Id,
-            //    BidderName = request.BidderName,
-            //    Amount = request.BidAmount,
-            //    TimePlaced = DateTime.UtcNow
-            //};
+            // Check if there is an existing higher bid
+            var existingBid = await placeBidRepository.GetHighestBidForAuctionAsync(request.AuctionId, cancellationToken);
+            if (existingBid != null)
+            {
+                if (existingBid.BidAmount >= request.BidAmount)
+                {
+                    logger.LogWarning("Existing higher bid of {BidAmount} found for auction with ID {AuctionId}.", existingBid.BidAmount, request.AuctionId);
+                    return SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>.Failure(PlaceBidErrorCode.ExistingHigherBid);
+                }
 
-            //auction.Bids.Add(bid);
-            //await _auctionRepository.UpdateAuctionAsync(auction);
+                if (request.BidderEmail.ToLowerInvariant() == existingBid.BiddersEmail.ToLowerInvariant())
+                {
+                    logger.LogWarning("The current highest bid for  auction with ID {AuctionId} already belongs to bidder with email {Email}", request.AuctionId, request.BidderEmail);
+                    return SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>.Failure(PlaceBidErrorCode.BidderHasHigherBid);
+                }
+            }
 
-            return VoidOrError<PlaceBidErrorCode>.Success();
+            // Place the bid
+            var bidResult = await placeBidRepository.PlaceBidAsync(request.AuctionId, request.BidderEmail, request.BidAmount, cancellationToken);
+
+            if (bidResult.HasError)
+                return SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>.Failure(bidResult.Error!.Value);
+
+            // Return success with bid details
+            logger.LogInformation("Bid placed successfully for auction with ID {AuctionId}, bidder {BidderEmail}.", request.AuctionId, request.BidderEmail);
+            return SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>.Success(bidResult.Result);
         }
     }
 
+    public class BidderHasHigherBidException() : Exception { }
 }

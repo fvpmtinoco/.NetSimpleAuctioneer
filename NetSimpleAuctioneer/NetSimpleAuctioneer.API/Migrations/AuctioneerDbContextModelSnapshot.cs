@@ -26,25 +26,26 @@ namespace NetSimpleAuctioneer.API.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<DateTime?>("EndDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("enddate");
 
                     b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("startdate");
 
                     b.Property<Guid>("VehicleId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("vehicleid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("VehicleId")
-                        .IsUnique();
+                    b.HasIndex("VehicleId", "EndDate")
+                        .IsUnique()
+                        .HasDatabaseName("UniqueActiveAuction");
 
                     b.ToTable("auction", (string)null);
                 });
@@ -53,24 +54,27 @@ namespace NetSimpleAuctioneer.API.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<Guid>("AuctionId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("auctionid");
 
                     b.Property<decimal>("BidAmount")
-                        .HasColumnType("numeric");
+                        .HasColumnType("numeric")
+                        .HasColumnName("bidamount");
 
                     b.Property<string>("BidderEmail")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("biddersemail");
 
                     b.Property<DateTime>("Timestamp")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("timestamp");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AuctionId");
 
                     b.ToTable("bid", (string)null);
                 });
@@ -79,33 +83,42 @@ namespace NetSimpleAuctioneer.API.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<decimal?>("LoadCapacity")
-                        .HasColumnType("numeric");
+                        .HasColumnType("numeric")
+                        .HasColumnName("loadcapacity");
 
                     b.Property<string>("Manufacturer")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("manufacturer");
 
                     b.Property<string>("Model")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("model");
 
                     b.Property<int?>("NumberOfDoors")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("numberofdoors");
 
                     b.Property<int?>("NumberOfSeats")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("numberofseats");
 
                     b.Property<decimal>("StartingBid")
-                        .HasColumnType("numeric");
+                        .HasColumnType("numeric")
+                        .HasColumnName("startingbid");
 
                     b.Property<int>("VehicleType")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("vehicletype");
 
                     b.Property<int>("Year")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("year");
 
                     b.HasKey("Id");
 
@@ -113,28 +126,6 @@ namespace NetSimpleAuctioneer.API.Migrations
                         .IsUnique();
 
                     b.ToTable("vehicle", (string)null);
-                });
-
-            modelBuilder.Entity("NetSimpleAuctioneer.API.Database.Auction", b =>
-                {
-                    b.HasOne("NetSimpleAuctioneer.API.Database.Vehicle", "Vehicle")
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Vehicle");
-                });
-
-            modelBuilder.Entity("NetSimpleAuctioneer.API.Database.Bid", b =>
-                {
-                    b.HasOne("NetSimpleAuctioneer.API.Database.Auction", "Auction")
-                        .WithMany()
-                        .HasForeignKey("AuctionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Auction");
                 });
 #pragma warning restore 612, 618
         }

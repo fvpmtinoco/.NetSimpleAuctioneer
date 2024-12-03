@@ -17,8 +17,8 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddSedan
         public async Task<IActionResult> AddSedan([FromBody, Required] AddSedanRequest request)
         {
             var response = await mediator.Send(new AddSedanCommand(request.Id, request.Manufacturer, request.Model, request.Year, request.StartingBid, request.NumberOfDoors));
-            if (response.HasErrors)
-                return Conflict(response.Errors);
+            if (response.HasError)
+                return Conflict(response.Error);
 
             return Created();
         }

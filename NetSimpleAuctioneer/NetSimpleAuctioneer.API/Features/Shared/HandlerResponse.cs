@@ -1,82 +1,48 @@
 ﻿namespace NetSimpleAuctioneer.API.Features.Shared
 {
-    public class SuccessOrError<T, TError> where TError : Enum
+    public class SuccessOrError<T, TError> where TError : struct, Enum
     {
-        public bool HasErrors => Errors.Count > 0;
-        public List<ErrorResult<TError>> Errors { get; } = [];
-        public T Model { get; } = default!;
+        public bool HasError => Error != null;
+        public TError? Error { get; }
+        public T Result { get; } = default!;
 
-        public SuccessOrError(T model)
+        // Private constructors to prevent direct instantiation
+        private SuccessOrError(T result)
         {
-            Model = model;
+            Result = result;
+            Error = null!;
         }
 
-        public SuccessOrError(params TError[] errors)
+        private SuccessOrError(TError errorCode)
         {
-            Errors.AddRange(errors.Select(x => new ErrorResult<TError>(x)));
+            Error = errorCode;
         }
 
-        public SuccessOrError(IEnumerable<TError> errors)
-        {
-            Errors.AddRange(errors.Select(x => new ErrorResult<TError>(x)));
-        }
+        // Factory method for success with result
+        public static SuccessOrError<T, TError> Success(T model) => new SuccessOrError<T, TError>(model);
 
-        public SuccessOrError(TError errorCode, params string[] invalidValues)
-        {
-            Errors.Add(new ErrorResult<TError>(errorCode, invalidValues));
-        }
-
-        public SuccessOrError(params ErrorResult<TError>[] errors)
-        {
-            Errors.AddRange(errors);
-        }
-
-        public SuccessOrError(IEnumerable<ErrorResult<TError>> errors)
-        {
-            Errors.AddRange(errors);
-        }
+        // Factory method for failure with error
+        public static SuccessOrError<T, TError> Failure(TError errorCode) =>
+            new SuccessOrError<T, TError>(errorCode);
     }
 
-    public class VoidOrError<TError> where TError : Enum
+    public class VoidOrError<TError> where TError : struct, Enum
     {
-        public bool HasErrors => Errors.Count > 0;
-        public List<ErrorResult<TError>> Errors { get; } = [];
+        public bool HasError => Error != null;
+        public TError? Error { get; }
 
-        private VoidOrError() { }
+        private VoidOrError() => Error = null!;
 
-        private VoidOrError(params TError[] errors)
+        private VoidOrError(TError error)
         {
-            Errors.AddRange(errors.Select(x => new ErrorResult<TError>(x)));
-        }
-
-        private VoidOrError(IEnumerable<TError> errors)
-        {
-            Errors.AddRange(errors.Select(x => new ErrorResult<TError>(x)));
-        }
-
-        private VoidOrError(params ErrorResult<TError>[] errors)
-        {
-            Errors.AddRange(errors);
-        }
-
-        private VoidOrError(IEnumerable<ErrorResult<TError>> errors)
-        {
-            Errors.AddRange(errors);
+            Error = error;
         }
 
         // Factory method for success
         public static VoidOrError<TError> Success() => new();
 
         // Factory method for failure with error codes
-        public static VoidOrError<TError> Failure(params TError[] errors) =>
-              new VoidOrError<TError>(errors);
-
-        // Factory method for failure with ErrorResult instances
-        public static VoidOrError<TError> Failure(params ErrorResult<TError>[] errors) =>
-            new VoidOrError<TError>(errors);
-
-        // Factory method for failure with IEnumerable of ErrorResult instances
-        public static VoidOrError<TError> Failure(IEnumerable<ErrorResult<TError>> errors) =>
-            new VoidOrError<TError>(errors);
+        public static VoidOrError<TError> Failure(TError error) =>
+              new VoidOrError<TError>(error);
     }
 }

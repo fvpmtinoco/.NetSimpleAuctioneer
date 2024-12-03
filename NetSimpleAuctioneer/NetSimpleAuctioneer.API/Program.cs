@@ -1,5 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using NetSimpleAuctioneer.API.Application.Policies;
 using NetSimpleAuctioneer.API.Database;
+using NetSimpleAuctioneer.API.Features.Auctions.CloseAuction;
+using NetSimpleAuctioneer.API.Features.Auctions.PlaceBid;
+using NetSimpleAuctioneer.API.Features.Auctions.StartAuction;
+using NetSimpleAuctioneer.API.Features.Vehicles.Search;
 using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -21,7 +26,15 @@ builder.Services.AddMediatR(config =>
     config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
 });
 
+// Register the PolicyProvider as IPolicyProvider (Polly policies)
+//builder.Services.AddSingleton<IPolicyProvider, PolicyProvider>();
+builder.Services.AddScoped<IPolicyProvider, PolicyProvider>();
+
 builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
+builder.Services.AddScoped<IStartAuctionRepository, StartAuctionRepository>();
+builder.Services.AddScoped<ICloseAuctionRepository, CloseAuctionRepository>();
+builder.Services.AddScoped<IPlaceBidRepository, PlaceBidRepository>();
+builder.Services.AddScoped<ISearchRepository, SearchRepository>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -29,7 +42,6 @@ builder.Services.AddEndpointsApiExplorer();
 // Swagger options
 builder.Services.AddSwaggerGen(options =>
 {
-
     // Swagger UI grouping - associate controller to a module according to its relative path 
     options.TagActionsBy(apiDescription =>
     {
@@ -55,6 +67,10 @@ builder.Services.AddSwaggerGen(options =>
         x.XEnumNamesAlias = "x-enum-varnames";
         x.XEnumDescriptionsAlias = "x-enum-descriptions";
     });
+
+    // Add API documentation
+    var filePath = Path.Combine(AppContext.BaseDirectory, "NetSimpleAuctioneer.API.xml");
+    options.IncludeXmlComments(filePath, includeControllerXmlComments: true);
 });
 
 var app = builder.Build();
