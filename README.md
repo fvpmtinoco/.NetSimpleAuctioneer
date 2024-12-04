@@ -1,8 +1,8 @@
 # .NetSimpleAuctioneer
 
 ## Assumptions
-1. A vehicle can be in different auctions, provided they occur in different periods of time. For instance, if an auction closes, the vehiche is "released" and can be the subject of another auction.
-2. The number of domains will not grow, sticking with Vehicles and Auction
+1. A vehicle can participate in multiple auctions, as long as these auctions occur at different times. For example, once an auction closes, the vehicle is considered "released" and can be placed in another auction at a later time.
+2. The system will maintain only two core domains: Vehicles and Auction. No additional domains will be introduced.
 
 ## Key Design Features
 
@@ -12,9 +12,16 @@ The project employs [Vertical Slice Architecture (VSA)](https://www.milanjovanov
 - **Self-Contained Endpoints**: Each endpoint (e.g., `AddTruck`, `AddSUV`, `StartAuction`) is fully self-contained, minimizing dependencies and simplifying development.
 - **VSA** was chosen over Clean Architecture due to its lower overhead, making it better suited for this project's scope, which includes only eight endpoints and relatively straightforward business logic.
 - **When to Consider Clean Architecture**: For projects with more complex requirements, Clean Architecture might be a more appropriate choice.
-
-**Shared Resources**:  
+- **Shared Resources**:  
 Common services, repositories, and shared logic are housed in a dedicated `Shared` folder, intended for reusability and consistency across features.
+
+### 2. Resilience in Database Connection (Polly)
+The project uses Polly for resilience, implementing retry and circuit breaker policies for handling transient database failures. Retry attempts are made a set number of times with exponential backoff, while the circuit breaker prevents further retries after repeated failures.
+
+### 3. Mediator Pattern (Mediatr)
+The Mediator pattern is implemented using Mediatr, which decouples components by sending requests through a mediator. Each request (e.g., AddTruckCommand) is handled by a dedicated handler, ensuring a clear separation of concerns and making the codebase more maintainable.
+Additionally, a logging pipeline behavior was introduced, which logs the requests and responses for better traceability and debugging.
+
 
 ## Improvements to consider
 ### Concurrency
