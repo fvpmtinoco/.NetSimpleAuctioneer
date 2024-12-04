@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
 {
-    #region Controllers
+    #region Controller
 
     public class SearchVehicleController(IMediator mediator) : VehiclesControllerBase(mediator)
     {
@@ -40,7 +40,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
 
     #endregion
 
-    #region Contracts
+    #region Contract
 
     /// <summary>
     /// Search vehicles request

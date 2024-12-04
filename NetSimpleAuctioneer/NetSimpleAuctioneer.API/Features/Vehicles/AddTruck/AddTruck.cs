@@ -40,6 +40,8 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddTruck
 
     #endregion
 
+    #region Contract
+
     /// <summary>
     /// Request to add a truck vehicle
     /// </summary>
@@ -52,4 +54,6 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddTruck
         [Range(1, 50000, ErrorMessage = "Load capacity must be between 1 and 50000")]
         public int LoadCapacity { get; set; }
     }
+
+    #endregion
 }

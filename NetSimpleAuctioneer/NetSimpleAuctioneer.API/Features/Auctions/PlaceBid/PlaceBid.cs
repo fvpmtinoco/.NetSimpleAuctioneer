@@ -7,6 +7,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
 {
+    #region Controller
+
     public class PlaceBidController(IMediator mediator) : AuctionsControllerBase(mediator)
     {
         /// <summary>
@@ -40,6 +42,10 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
             return Ok(new PlaceBidResponse { BidId = response.Result.BidId });
         }
     }
+
+    #endregion
+
+    #region Contract
 
     /// <summary>
     /// Request to place a bid in an auction
@@ -103,4 +109,6 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
         [Description("Internal error placing the bid")]
         InternalError
     }
+
+    #endregion
 }
