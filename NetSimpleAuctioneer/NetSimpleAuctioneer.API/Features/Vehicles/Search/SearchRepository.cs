@@ -1,11 +1,9 @@
 ﻿using Dapper;
 using Microsoft.Extensions.Options;
 using NetSimpleAuctioneer.API.Application;
-using NetSimpleAuctioneer.API.Application.Policies;
 using NetSimpleAuctioneer.API.Database;
 using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
 using Npgsql;
-using Polly;
 
 namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
 {
@@ -25,7 +23,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
         Task<SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>> SearchVehiclesAsync(string? manufacturer, string? model, int? year, VehicleType? vehicleType, int pageNumber, int pageSize, CancellationToken cancellationToken);
     }
 
-    public class SearchRepository(ILogger<SearchRepository> logger, IPolicyProvider policyProvider, IOptions<ConnectionStrings> connectionStrings, IDatabaseConnection dbConnection) : ISearchRepository
+    public class SearchRepository(ILogger<SearchRepository> logger, IOptions<ConnectionStrings> connectionStrings, IDatabaseConnection dbConnection) : ISearchRepository
     {
         public async Task<SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>> SearchVehiclesAsync(string? manufacturer, string? model, int? year, VehicleType? vehicleType, int pageNumber, int pageSize, CancellationToken cancellationToken)
         {
@@ -50,16 +48,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
 
             try
             {
-                // Retrieve policies from the PolicyProvider
-                var retryPolicy = policyProvider.GetRetryPolicyWithoutConcurrencyException();
-                var circuitBreakerPolicy = policyProvider.GetCircuitBreakerPolicy();
-
-                // Retry the database operation with Polly policy
-                var result = await Policy.WrapAsync(retryPolicy, circuitBreakerPolicy).ExecuteAsync(async () =>
-                {
-                    return await dbConnection.QueryAsync<SearchVehicleResult>(command);
-                });
-
+                var result = await dbConnection.QueryAsync<SearchVehicleResult>(command);
                 return SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>.Success(result);
             }
             catch (Exception ex)

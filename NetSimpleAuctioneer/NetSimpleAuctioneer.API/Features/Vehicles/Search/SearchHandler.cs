@@ -17,14 +17,14 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Search
 
     public record SearchVehicleQuery(VehicleType? VehicleType, string? Manufacturer, string? Model, int? Year, int PageNumber, int PageSize) : IRequest<SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>>;
 
-    public class SearchHandler(ISearchRepository searchRepository, IVehicleService vehicleService) : IRequestHandler<SearchVehicleQuery, SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>>
+    public class SearchHandler(ISearchService searchService) : IRequestHandler<SearchVehicleQuery, SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>>
     {
         public async Task<SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>> Handle(SearchVehicleQuery request, CancellationToken cancellationToken)
         {
-            if (request.Year.HasValue && !vehicleService.IsVehicleYearValid(request.Year.Value))
+            if (request.Year < 1900 || request.Year > DateTime.UtcNow.Year)
                 return SuccessOrError<IEnumerable<SearchVehicleResult>, SearchVehicleErrorCode>.Failure(SearchVehicleErrorCode.InvalidYear);
 
-            var result = await searchRepository.SearchVehiclesAsync(request.Manufacturer, request.Model, request.Year, request.VehicleType, request.PageNumber, request.PageSize, cancellationToken);
+            var result = await searchService.SearchVehiclesAsync(request.Manufacturer, request.Model, request.Year, request.VehicleType, request.PageNumber, request.PageSize, cancellationToken);
 
             return result;
         }

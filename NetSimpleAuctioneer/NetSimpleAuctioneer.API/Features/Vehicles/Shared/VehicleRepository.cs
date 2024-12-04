@@ -1,9 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Dapper;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using NetSimpleAuctioneer.API.Application;
-using NetSimpleAuctioneer.API.Application.Policies;
 using NetSimpleAuctioneer.API.Database;
 using Npgsql;
-using Polly;
 
 namespace NetSimpleAuctioneer.API.Features.Vehicles.Shared
 {
@@ -16,40 +16,26 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Shared
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         Task<VoidOrError<AddVehicleErrorCode>> AddVehicleAsync(Vehicle vehicle, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Check if a vehicle exists in the database
+        /// </summary>
+        /// <param name="vehicleId"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<bool?> VehicleExistsAsync(Guid vehicleId, CancellationToken cancellationToken);
     }
 
-    public class VehicleRepository(AuctioneerDbContext context, ILogger<VehicleRepository> logger, IPolicyProvider policyProvider) : IVehicleRepository
+    public class VehicleRepository(AuctioneerDbContext context, ILogger<VehicleRepository> logger, IOptions<ConnectionStrings> connectionStrings, IDatabaseConnection dbConnection) : IVehicleRepository
     {
         public async Task<VoidOrError<AddVehicleErrorCode>> AddVehicleAsync(Vehicle vehicle, CancellationToken cancellationToken)
         {
             try
             {
-                // Retrieve policies from the PolicyProvider
-                var retryPolicy = policyProvider.GetRetryPolicyWithoutConcurrencyException();
-                var circuitBreakerPolicy = policyProvider.GetCircuitBreakerPolicy();
+                context.Vehicles.Add(vehicle);
+                await context.SaveChangesAsync(cancellationToken);
 
-                // Define your custom result type (success/failure) for Polly's ExecuteAsync
-                var result = await Policy.WrapAsync(retryPolicy, circuitBreakerPolicy).ExecuteAsync(async ct =>
-                    {
-                        // Check if the vehicle exists
-                        var existingVehicle = await context.Vehicles
-                            .SingleOrDefaultAsync(v => v.Id == vehicle.Id, ct);
-
-                        if (existingVehicle != null)
-                        {
-                            logger.LogWarning("Attempted to add a vehicle with a duplicate ID {VehicleId}", vehicle.Id);
-                            return VoidOrError<AddVehicleErrorCode>.Failure(AddVehicleErrorCode.DuplicatedVehicle);
-                        }
-
-                        // If not duplicated, save the vehicle
-                        context.Vehicles.Add(vehicle);
-                        await context.SaveChangesAsync(ct);
-
-                        logger.LogInformation("Added vehicle with ID {VehicleId}", vehicle.Id);
-                        return VoidOrError<AddVehicleErrorCode>.Success();
-                    }, cancellationToken);
-
-                return result;
+                return VoidOrError<AddVehicleErrorCode>.Success();
             }
             catch (DbUpdateException ex) when (ex.InnerException is PostgresException pgEx && pgEx.SqlState == "23505")
             {
@@ -61,6 +47,25 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Shared
             {
                 logger.LogError(ex, "An unknown error occurred while adding a vehicle with ID {VehicleId}", vehicle.Id);
                 return VoidOrError<AddVehicleErrorCode>.Failure(AddVehicleErrorCode.InternalError);
+            }
+        }
+
+        public async Task<bool?> VehicleExistsAsync(Guid vehicleId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                string query = "SELECT EXISTS (SELECT 1 FROM auction WHERE vehicleid = @vehicleId and enddate is null)";
+                await using var connection = new NpgsqlConnection(connectionStrings.Value.AuctioneerDBConnectionString);
+                var command = new CommandDefinition(query, new { vehicleId }, cancellationToken: cancellationToken);
+
+                var result = await dbConnection.QuerySingleOrDefaultAsync<bool>(command);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error occurred while checking for active auction for vehicle with ID: {VehicleId}", vehicleId);
+                return null;
             }
         }
     }

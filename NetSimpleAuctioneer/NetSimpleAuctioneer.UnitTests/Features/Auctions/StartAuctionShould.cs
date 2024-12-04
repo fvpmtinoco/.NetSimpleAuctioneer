@@ -8,20 +8,21 @@ using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Application.Policies;
 using NetSimpleAuctioneer.API.Database;
 using NetSimpleAuctioneer.API.Features.Auctions.StartAuction;
-using Npgsql;
 using Polly;
 
 namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
 {
     public class StartAuctionShould
     {
-        private readonly Mock<ILogger<StartAuctionRepository>> mockLogger;
+        private readonly Mock<ILogger<StartAuctionRepository>> mockRepositoryLogger;
+        private readonly Mock<ILogger<StartAuctionService>> mockServiceLogger;
         private readonly Mock<IPolicyProvider> mockPolicyProvider;
         private readonly StartAuctionRepository repository;
         private readonly AuctioneerDbContext context;
         private readonly AsyncPolicy mockRetryPolicy;
         private readonly AsyncPolicy mockCircuitBreakerPolicy;
         private readonly Mock<IStartAuctionRepository> mockRepository;
+        private readonly Mock<IStartAuctionService> mockService;
         private readonly StartAuctionHandler handler;
         private readonly Fixture fixture;
         private readonly Mock<IOptions<ConnectionStrings>> mockConnectionStrings;
@@ -29,12 +30,16 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
 
         public StartAuctionShould()
         {
-            mockLogger = new Mock<ILogger<StartAuctionRepository>>();
+            mockRepositoryLogger = new Mock<ILogger<StartAuctionRepository>>();
+            mockServiceLogger = new Mock<ILogger<StartAuctionService>>();
             mockPolicyProvider = new Mock<IPolicyProvider>();
             mockRepository = new Mock<IStartAuctionRepository>();
+            mockService = new Mock<IStartAuctionService>();
+
+            // Mock the database connection
             mockDbConnection = new Mock<IDatabaseConnection>();
 
-            handler = new StartAuctionHandler(mockRepository.Object, It.IsAny<IOptions<ConnectionStrings>>());
+            handler = new StartAuctionHandler(mockService.Object);
             mockConnectionStrings = new Mock<IOptions<ConnectionStrings>>();
 
             // Set up mock connection string
@@ -47,8 +52,6 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
             var options = new DbContextOptionsBuilder<AuctioneerDbContext>()
                             .UseInMemoryDatabase(databaseName: "TestDatabase")
                             .Options;
-
-            handler = new StartAuctionHandler(mockRepository.Object, mockConnectionStrings.Object);
 
             // Use the in-memory DbContext
             context = new AuctioneerDbContext(options);
@@ -66,8 +69,8 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
 
             repository = new StartAuctionRepository(
                 context,
-                mockLogger.Object,
-                mockPolicyProvider.Object,
+                mockRepositoryLogger.Object,
+                mockConnectionStrings.Object,
                 mockDbConnection.Object
             );
 
@@ -78,16 +81,15 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
         public async Task StartAuctionAsyncShouldCreateAuctionForVehicle()
         {
             // Arrange
-            var vehicleId = fixture.Create<Guid>();
+            var vehicle = fixture.Create<Auction>();
             var cancellationToken = CancellationToken.None;
             var commandResult = SuccessOrError<StartAuctionCommandResult, StartAuctionErrorCode>.Success(new StartAuctionCommandResult(fixture.Create<Guid>()));
 
-            // Mock the policy provider and logger
-            mockRepository.Setup(repo => repo.StartAuctionAsync(vehicleId, cancellationToken))
+            mockRepository.Setup(repo => repo.StartAuctionAsync(vehicle, cancellationToken))
                 .ReturnsAsync(commandResult);
 
             // Act
-            var result = await repository.StartAuctionAsync(vehicleId, cancellationToken);
+            var result = await repository.StartAuctionAsync(vehicle, cancellationToken);
 
             // Assert
             result.HasError.Should().BeFalse();
@@ -96,33 +98,7 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
         }
 
         [Fact]
-        public async Task StartAuctionShouldReturnErrorWhenAuctionAlreadyActive()
-        {
-            // Arrange
-            var vehicleId = fixture.Create<Guid>();
-            var cancellationToken = CancellationToken.None;
-
-            // Add auction and initial bid to the in-memory context
-            var auction = new Auction
-            {
-                Id = fixture.Create<Guid>(),
-                VehicleId = vehicleId,
-                StartDate = DateTime.UtcNow,
-            };
-
-            context.Auctions.Add(auction);
-            await context.SaveChangesAsync();
-
-            // Act
-            var result = await repository.StartAuctionAsync(vehicleId, cancellationToken);
-
-            // Assert
-            result.HasError.Should().BeTrue();
-            result.Error.Should().Be(StartAuctionErrorCode.AuctionForVehicleAlreadyActive);
-        }
-
-        [Fact]
-        public async Task StartAuctionAsyncShouldReturnInternalErrorOnException()
+        public async Task StartAuctionShouldReturnInternalErrorOnException()
         {
             // Arrange
             var cancellationToken = CancellationToken.None;
@@ -130,30 +106,10 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
             // Mock IPolicyProvider - No policies so it will throw reference not set
             var mockPolicyProvider = new Mock<IPolicyProvider>();
 
-            var repository = new StartAuctionRepository(context, mockLogger.Object, mockPolicyProvider.Object, mockDbConnection.Object);
+            var service = new StartAuctionService(mockRepository.Object, mockServiceLogger.Object, mockPolicyProvider.Object);
 
             // Act
-            var result = await repository.StartAuctionAsync(fixture.Create<Guid>(), cancellationToken);
-
-            // Assert
-            result.HasError.Should().BeTrue();
-            result.Error.Should().Be(StartAuctionErrorCode.InternalError);
-        }
-
-        [Fact]
-        public async Task VehicleExistsAsyncShouldReturnInternalErrorOnException()
-        {
-            // Arrange
-            var vehicleId = fixture.Create<Guid>();
-            var cancellationToken = CancellationToken.None;
-
-            // Mock IPolicyProvider - No policies so it will throw reference not set
-            var mockPolicyProvider = new Mock<IPolicyProvider>();
-
-            var repository = new StartAuctionRepository(context, mockLogger.Object, mockPolicyProvider.Object, mockDbConnection.Object);
-
-            // Act
-            var result = await repository.VehicleExistsAsync(It.IsAny<NpgsqlConnection>(), vehicleId, cancellationToken);
+            var result = await service.StartAuctionAsync(It.IsAny<Guid>(), cancellationToken);
 
             // Assert
             result.HasError.Should().BeTrue();
@@ -168,9 +124,8 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
             var command = new StartAuctionCommand(vehicleId);
             var cancellationToken = CancellationToken.None;
 
-            // Mock VehicleExistsAsync to return false (vehicle does not exist)
-            mockRepository.Setup(repo => repo.VehicleExistsAsync(It.IsAny<NpgsqlConnection>(), vehicleId, cancellationToken))
-                .ReturnsAsync(SuccessOrError<bool, StartAuctionErrorCode>.Success(false));
+            mockService.Setup(repo => repo.ValidateAuctionAsync(command, cancellationToken))
+                .ReturnsAsync(StartAuctionErrorCode.InvalidVehicle);
 
             // Act
             var result = await handler.Handle(command, cancellationToken);
@@ -188,13 +143,8 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
             var command = new StartAuctionCommand(vehicleId);
             var cancellationToken = CancellationToken.None;
 
-            // Mock VehicleExistsAsync to return true (vehicle exists)
-            mockRepository.Setup(repo => repo.VehicleExistsAsync(It.IsAny<NpgsqlConnection>(), vehicleId, cancellationToken))
-                .ReturnsAsync(SuccessOrError<bool, StartAuctionErrorCode>.Success(true));
-
-            // Mock StartAuctionAsync to throw AuctionAlreadyActiveException
-            mockRepository.Setup(repo => repo.StartAuctionAsync(It.IsAny<Guid>(), cancellationToken))
-                .ReturnsAsync(SuccessOrError<StartAuctionCommandResult, StartAuctionErrorCode>.Failure(StartAuctionErrorCode.AuctionForVehicleAlreadyActive));
+            mockService.Setup(repo => repo.ValidateAuctionAsync(command, cancellationToken))
+                .ReturnsAsync(StartAuctionErrorCode.AuctionForVehicleAlreadyActive);
 
             // Act
             var result = await handler.Handle(command, cancellationToken);
@@ -213,12 +163,10 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
             var cancellationToken = CancellationToken.None;
             var expectedAuctionId = Guid.NewGuid();
 
-            // Mock VehicleExistsAsync to return true (vehicle exists)
-            mockRepository.Setup(repo => repo.VehicleExistsAsync(It.IsAny<NpgsqlConnection>(), vehicleId, cancellationToken))
-                .ReturnsAsync(SuccessOrError<bool, StartAuctionErrorCode>.Success(true));
+            mockService.Setup(repo => repo.ValidateAuctionAsync(command, cancellationToken))
+                .ReturnsAsync((StartAuctionErrorCode?)null);
 
-            // Mock StartAuctionAsync to return success
-            mockRepository.Setup(repo => repo.StartAuctionAsync(It.IsAny<Guid>(), cancellationToken))
+            mockService.Setup(repo => repo.StartAuctionAsync(It.IsAny<Guid>(), cancellationToken))
                 .ReturnsAsync(SuccessOrError<StartAuctionCommandResult, StartAuctionErrorCode>.Success(new StartAuctionCommandResult(expectedAuctionId)));
 
             // Act

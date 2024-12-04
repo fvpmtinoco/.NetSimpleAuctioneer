@@ -1,31 +1,32 @@
 ﻿using MediatR;
 using NetSimpleAuctioneer.API.Application;
-using NetSimpleAuctioneer.API.Database;
 using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
 
 namespace NetSimpleAuctioneer.API.Features.Vehicles.AddSUV
 {
     public record AddSUVCommand(Guid Id, string Manufacturer, string Model, int Year, decimal StartingBid, int NumberOfSeats) : IRequest<VoidOrError<AddVehicleErrorCode>>;
 
-    public class AddSUVHandler(IVehicleRepository commonRepository, IVehicleService vehicleService) : IRequestHandler<AddSUVCommand, VoidOrError<AddVehicleErrorCode>>
+    public class AddSUVHandler(IVehicleService vehicleService) : IRequestHandler<AddSUVCommand, VoidOrError<AddVehicleErrorCode>>
     {
-        public async Task<VoidOrError<AddVehicleErrorCode>> Handle(AddSUVCommand request, CancellationToken cancellationToken)
+        public async Task<VoidOrError<AddVehicleErrorCode>> Handle(AddSUVCommand command, CancellationToken cancellationToken)
         {
-            if (!vehicleService.IsVehicleYearValid(request.Year))
-                return VoidOrError<AddVehicleErrorCode>.Failure(AddVehicleErrorCode.InvalidYear);
+            var validationResult = await vehicleService.ValidateVehicleAsync(command.Id, command.Year);
 
-            var suv = new Vehicle
+            if (validationResult != null)
+                return VoidOrError<AddVehicleErrorCode>.Failure(validationResult.Value);
+
+            var suv = new SUV
             {
-                Id = request.Id,
-                Manufacturer = request.Manufacturer,
-                Model = request.Model,
-                Year = request.Year,
-                StartingBid = request.StartingBid,
-                VehicleType = (int)VehicleType.SUV,
-                NumberOfSeats = request.NumberOfSeats
+                Id = command.Id,
+                Manufacturer = command.Manufacturer,
+                Model = command.Model,
+                Year = command.Year,
+                StartingBid = command.StartingBid,
+                VehicleType = VehicleType.SUV,
+                NumberOfSeats = command.NumberOfSeats
             };
 
-            var result = await commonRepository.AddVehicleAsync(suv, cancellationToken);
+            var result = await vehicleService.AddVehicleAsync(suv, cancellationToken);
 
             if (result == null)
                 return VoidOrError<AddVehicleErrorCode>.Success();

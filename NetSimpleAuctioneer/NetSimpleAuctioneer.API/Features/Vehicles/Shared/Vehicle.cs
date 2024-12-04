@@ -2,10 +2,11 @@
 {
     public interface IVehicle
     {
-        Guid Id { get; }
-        string Manufacturer { get; }
-        string Model { get; }
-        int Year { get; }
-        decimal StartingBid { get; }
+        Guid Id { get; set; }
+        string Manufacturer { get; set; }
+        string Model { get; set; }
+        int Year { get; set; }
+        decimal StartingBid { get; set; }
+        VehicleType VehicleType { get; set; }
     }
 }

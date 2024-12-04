@@ -1,31 +1,32 @@
 ﻿using MediatR;
 using NetSimpleAuctioneer.API.Application;
-using NetSimpleAuctioneer.API.Database;
 using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
 
 namespace NetSimpleAuctioneer.API.Features.Vehicles.AddHatchback
 {
     public record AddHatchbackCommand(Guid Id, string Manufacturer, string Model, int Year, decimal StartingBid, int NumberOfDoors) : IRequest<VoidOrError<AddVehicleErrorCode>>;
 
-    public class AddHatchbackHandler(IVehicleRepository commonRepository, IVehicleService vehicleService) : IRequestHandler<AddHatchbackCommand, VoidOrError<AddVehicleErrorCode>>
+    public class AddHatchbackHandler(IVehicleService vehicleService) : IRequestHandler<AddHatchbackCommand, VoidOrError<AddVehicleErrorCode>>
     {
-        public async Task<VoidOrError<AddVehicleErrorCode>> Handle(AddHatchbackCommand request, CancellationToken cancellationToken)
+        public async Task<VoidOrError<AddVehicleErrorCode>> Handle(AddHatchbackCommand command, CancellationToken cancellationToken)
         {
-            if (!vehicleService.IsVehicleYearValid(request.Year))
-                return VoidOrError<AddVehicleErrorCode>.Failure(AddVehicleErrorCode.InvalidYear);
+            var validationResult = await vehicleService.ValidateVehicleAsync(command.Id, command.Year);
 
-            var hatchback = new Vehicle
+            if (validationResult != null)
+                return VoidOrError<AddVehicleErrorCode>.Failure(validationResult.Value);
+
+            var hatchback = new Hatchback
             {
-                Id = request.Id,
-                Manufacturer = request.Manufacturer,
-                Model = request.Model,
-                Year = request.Year,
-                StartingBid = request.StartingBid,
+                Id = command.Id,
+                Manufacturer = command.Manufacturer,
+                Model = command.Model,
+                Year = command.Year,
+                StartingBid = command.StartingBid,
                 VehicleType = (int)VehicleType.Hatchback,
-                NumberOfDoors = request.NumberOfDoors
+                NumberOfDoors = command.NumberOfDoors
             };
 
-            var result = await commonRepository.AddVehicleAsync(hatchback, cancellationToken);
+            var result = await vehicleService.AddVehicleAsync(hatchback, cancellationToken);
 
             return result;
         }

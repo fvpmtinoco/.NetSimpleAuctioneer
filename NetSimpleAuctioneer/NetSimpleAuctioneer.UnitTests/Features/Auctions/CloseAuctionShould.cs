@@ -2,6 +2,7 @@ using AutoFixture;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Application.Policies;
@@ -13,32 +14,47 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
 {
     public class CloseAuctionShould
     {
-        private readonly Mock<ILogger<CloseAuctionRepository>> mockLogger;
+        private readonly Mock<ILogger<CloseAuctionRepository>> mockLoggerRepository;
+        private readonly Mock<ILogger<CloseAuctionService>> mockLoggerService;
+        private readonly Mock<ICloseAuctionRepository> mockRepository;
+        private readonly Mock<ICloseAuctionService> mockService;
+        private readonly Mock<IDatabaseConnection> mockDbConnection;
         private readonly Mock<IPolicyProvider> mockPolicyProvider;
+        private readonly Mock<IOptions<ConnectionStrings>> mockConnectionStrings;
         private readonly CloseAuctionRepository repository;
         private readonly AuctioneerDbContext context;
         private readonly AsyncPolicy mockRetryPolicy;
         private readonly AsyncPolicy mockCircuitBreakerPolicy;
-        private readonly Mock<ICloseAuctionRepository> mockRepository;
+
         private readonly CloseAuctionHandler handler;
         private readonly Fixture fixture;
 
         public CloseAuctionShould()
         {
-            mockLogger = new Mock<ILogger<CloseAuctionRepository>>();
+            mockLoggerRepository = new Mock<ILogger<CloseAuctionRepository>>();
+            mockLoggerService = new Mock<ILogger<CloseAuctionService>>();
             mockPolicyProvider = new Mock<IPolicyProvider>();
             mockRepository = new Mock<ICloseAuctionRepository>();
-            handler = new CloseAuctionHandler(mockRepository.Object);
+            mockService = new Mock<ICloseAuctionService>();
+            handler = new CloseAuctionHandler(mockService.Object);
 
             // Set up an in-memory database for testing
             var options = new DbContextOptionsBuilder<AuctioneerDbContext>()
                             .UseInMemoryDatabase(databaseName: "TestDatabase")
                             .Options;
 
-            handler = new CloseAuctionHandler(mockRepository.Object);
-
             // Use the in-memory DbContext
             context = new AuctioneerDbContext(options);
+
+            // Mock the database connection
+            mockDbConnection = new Mock<IDatabaseConnection>();
+
+            // Mock the IOptions<ConnectionStrings>
+            mockConnectionStrings = new Mock<IOptions<ConnectionStrings>>();
+            mockConnectionStrings.Setup(x => x.Value).Returns(new ConnectionStrings
+            {
+                AuctioneerDBConnectionString = "Host=localhost;Port=5432;Database=AuctioneerDB;Username=postgres;Password=postgres"
+            });
 
             // Directly create and mock concrete AsyncPolicy (e.g., RetryPolicy)
             mockRetryPolicy = Policy.NoOpAsync();  // This is a simple NoOp policy
@@ -53,8 +69,9 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
 
             repository = new CloseAuctionRepository(
                 context,
-                mockLogger.Object,
-                mockPolicyProvider.Object
+                mockLoggerRepository.Object,
+                mockConnectionStrings.Object,
+                mockDbConnection.Object
             );
 
             fixture = new();
@@ -138,10 +155,10 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
             // Mock IPolicyProvider - No policies so it will throw reference not set
             var mockPolicyProvider = new Mock<IPolicyProvider>();
 
-            var repository = new CloseAuctionRepository(context, mockLogger.Object, mockPolicyProvider.Object);
+            var service = new CloseAuctionService(mockRepository.Object, mockPolicyProvider.Object, mockLoggerService.Object);
 
             // Act
-            var result = await repository.CloseAuctionAsync(fixture.Create<Guid>(), It.IsAny<CancellationToken>());
+            var result = await service.CloseAuctionAsync(fixture.Create<Guid>(), It.IsAny<CancellationToken>());
 
             // Assert
             result.HasError.Should().BeTrue();
@@ -156,8 +173,11 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
             var command = new CloseAuctionCommand(auctionId);
             var cancellationToken = CancellationToken.None;
 
-            // Mock the repository to return success
-            mockRepository.Setup(repo => repo.CloseAuctionAsync(auctionId, cancellationToken))
+            mockService.Setup(repo => repo.ValidateAuctionAsync(auctionId, cancellationToken))
+                        .ReturnsAsync((CloseAuctionErrorCode?)null);
+
+            // Mock the service to return success
+            mockService.Setup(repo => repo.CloseAuctionAsync(auctionId, cancellationToken))
                           .ReturnsAsync(SuccessOrError<CloseAuctionCommandResult, CloseAuctionErrorCode>.Success(new CloseAuctionCommandResult(auctionId)));
 
             // Act
@@ -177,8 +197,11 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
             var command = new CloseAuctionCommand(auctionId);
             var cancellationToken = CancellationToken.None;
 
-            // Mock the repository to return failure when the auction is not found
-            mockRepository.Setup(repo => repo.CloseAuctionAsync(auctionId, cancellationToken))
+            mockService.Setup(repo => repo.ValidateAuctionAsync(auctionId, cancellationToken))
+                          .ReturnsAsync((CloseAuctionErrorCode?)null);
+
+            // Mock the service to return failure when the auction is not found
+            mockService.Setup(repo => repo.CloseAuctionAsync(auctionId, cancellationToken))
                           .ReturnsAsync(SuccessOrError<CloseAuctionCommandResult, CloseAuctionErrorCode>.Failure(CloseAuctionErrorCode.InvalidAuction));
 
             // Act
@@ -197,8 +220,13 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
             var command = new CloseAuctionCommand(auctionId);
             var cancellationToken = CancellationToken.None;
 
-            // Mock the repository to return failure when the auction is already closed
-            mockRepository.Setup(repo => repo.CloseAuctionAsync(auctionId, cancellationToken))
+            var service = new CloseAuctionService(mockRepository.Object, mockPolicyProvider.Object, mockLoggerService.Object);
+
+            mockService.Setup(serv => serv.ValidateAuctionAsync(auctionId, cancellationToken))
+                          .ReturnsAsync((CloseAuctionErrorCode?)null);
+
+            // Mock the service to return failure when the auction is not found
+            mockService.Setup(serv => serv.CloseAuctionAsync(auctionId, cancellationToken))
                           .ReturnsAsync(SuccessOrError<CloseAuctionCommandResult, CloseAuctionErrorCode>.Failure(CloseAuctionErrorCode.AuctionAlreadyClosed));
 
             // Act
@@ -217,9 +245,15 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
             var command = new CloseAuctionCommand(auctionId);
             var cancellationToken = CancellationToken.None;
 
-            // Mock the repository to simulate an error while closing the auction
-            mockRepository.Setup(repo => repo.CloseAuctionAsync(auctionId, cancellationToken))
-                          .ReturnsAsync(SuccessOrError<CloseAuctionCommandResult, CloseAuctionErrorCode>.Failure(CloseAuctionErrorCode.InternalError));
+            // Mock IPolicyProvider - No policies so it will throw reference not set
+            var mockPolicyProvider = new Mock<IPolicyProvider>();
+
+            mockRepository.Setup(repo => repo.GetAuctionByIdAsync(auctionId, cancellationToken))
+                          .ReturnsAsync((Guid.NewGuid(), (DateTime?)null));
+
+            var service = new CloseAuctionService(mockRepository.Object, mockPolicyProvider.Object, mockLoggerService.Object);
+
+            var handler = new CloseAuctionHandler(service);
 
             // Act
             var result = await handler.Handle(command, cancellationToken);

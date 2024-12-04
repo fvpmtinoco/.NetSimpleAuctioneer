@@ -47,7 +47,11 @@ builder.Services.AddScoped<ICloseAuctionRepository, CloseAuctionRepository>();
 builder.Services.AddScoped<IPlaceBidRepository, PlaceBidRepository>();
 builder.Services.AddScoped<ISearchRepository, SearchRepository>();
 builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
-builder.Services.AddSingleton<IVehicleService, VehicleService>();
+builder.Services.AddScoped<ICloseAuctionService, CloseAuctionService>();
+builder.Services.AddScoped<IPlaceBidService, PlaceBidService>();
+builder.Services.AddScoped<IStartAuctionService, StartAuctionService>();
+builder.Services.AddScoped<IVehicleService, VehicleService>();
+builder.Services.AddScoped<ISearchService, SearchService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

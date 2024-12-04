@@ -1,94 +1,93 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Dapper;
+using Microsoft.Extensions.Options;
 using NetSimpleAuctioneer.API.Application;
-using NetSimpleAuctioneer.API.Application.Policies;
 using NetSimpleAuctioneer.API.Database;
-using Polly;
+using Npgsql;
 
 namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
 {
     public interface IPlaceBidRepository
     {
         /// <summary>
-        /// Places a bid for the given auction
+        /// Stores a bid
         /// </summary>
-        /// <param name="auctionId"></param>
-        /// <param name="bidderEmail"></param>
-        /// <param name="bidAmount"></param>
+        /// <param name="bid"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>> PlaceBidAsync(Guid auctionId, string bidderEmail, decimal bidAmount, CancellationToken cancellationToken);
+        Task<SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>> PlaceBidAsync(Bid bid, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Retrieves an auction by its ID
+        /// </summary>
+        /// <param name="auctionId"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<(Guid? auctionId, DateTime? endDate, decimal? minimumBid)?> GetAuctionByIdAsync(Guid auctionId, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Retrieves the highest bid for an auction
+        /// </summary>
+        /// <param name="auctionId"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<(decimal? lastBid, string? bidderemail)?> GetHighestBidForAuctionAsync(Guid auctionId, CancellationToken cancellationToken);
     }
 
-    public class PlaceBidRepository(AuctioneerDbContext context, ILogger<PlaceBidRepository> logger, IPolicyProvider policyProvider) : IPlaceBidRepository
+    public class PlaceBidRepository(AuctioneerDbContext context, ILogger<PlaceBidRepository> logger, IOptions<ConnectionStrings> connectionStrings, IDatabaseConnection dbConnection) : IPlaceBidRepository
     {
-        public async Task<SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>> PlaceBidAsync(Guid auctionId, string bidderEmail, decimal bidAmount, CancellationToken cancellationToken)
+        public async Task<SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>> PlaceBidAsync(Bid bid, CancellationToken cancellationToken)
         {
-            // Retrieve policies from the PolicyProvider
-            var retryPolicy = policyProvider.GetRetryPolicy();
-            var circuitBreakerPolicy = policyProvider.GetCircuitBreakerPolicy();
-
             try
             {
-                // Retry the database operation with Polly policy - cannot return a value directly, so an exception is thrown, caught and handled
-                var result = await Policy.WrapAsync(retryPolicy, circuitBreakerPolicy).ExecuteAsync(async ct =>
-                {
-                    // Check if the auction exists
-                    var auction = await context.Auctions.SingleOrDefaultAsync(a => a.Id == auctionId, ct);
-                    if (auction == null)
-                    {
-                        logger.LogWarning("Auction with ID {AuctionId} not found.", auctionId);
-                        return SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>.Failure(PlaceBidErrorCode.AuctionNotFound);
-                    }
+                await context.Bids.AddAsync(bid, cancellationToken);
+                await context.SaveChangesAsync(cancellationToken);
 
-                    // Check if the auction is still open
-                    if (auction.EndDate != null)
-                    {
-                        logger.LogWarning("Auction with ID {AuctionId} is already closed.", auctionId);
-                        return SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>.Failure(PlaceBidErrorCode.AuctionAlreadyClosed);
-                    }
+                logger.LogInformation("Bid with {Id} placed successfully for auction {AuctionId} by bidder {BidderEmail}.", bid.Id, bid.AuctionId, bid.BidderEmail);
+                return SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>.Success(new PlaceBidCommandResult(bid.Id));
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error placing bid for auction with ID: {AuctionId}", bid.AuctionId);
+                return SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>.Failure(PlaceBidErrorCode.InternalError);
+            }
+        }
 
-                    // Check if the bid amount is higher than the current highest bid
-                    var highestBid = await context.Bids
-                                                  .Where(b => b.AuctionId == auctionId)
-                                                  .OrderByDescending(b => b.BidAmount)
-                                                  .FirstOrDefaultAsync(ct);
+        public async Task<(Guid? auctionId, DateTime? endDate, decimal? minimumBid)?> GetAuctionByIdAsync(Guid auctionId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var query = @"SELECT id, enddate, minimumbid FROM auction WHERE id = @auctionId";
+                await using var connection = new NpgsqlConnection(connectionStrings.Value.AuctioneerDBConnectionString);
+                var command = new CommandDefinition(query, new { auctionId }, cancellationToken: cancellationToken);
 
-                    if (highestBid != null)
-                    {
-                        if (bidAmount <= highestBid.BidAmount)
-                        {
-                            logger.LogWarning("Bid amount {BidAmount} is equal or lower than the highest bid {HighestBidAmount} for auction {AuctionId}.", bidAmount, highestBid.BidAmount, auctionId);
-                            return SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>.Failure(PlaceBidErrorCode.BidAmountTooLow);
-                        }
-                        if (bidderEmail.Equals(highestBid.BidderEmail, StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            logger.LogWarning("Bidder {BidderEmail} already has the highest bid for auction {AuctionId}.", bidderEmail, auctionId);
-                            return SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>.Failure(PlaceBidErrorCode.BidderHasHigherBid);
-                        }
-                    }
-
-                    // Add the new bid to the database
-                    var bid = new Bid
-                    {
-                        AuctionId = auctionId,
-                        BidderEmail = bidderEmail,
-                        BidAmount = bidAmount,
-                        Timestamp = DateTime.UtcNow
-                    };
-
-                    await context.Bids.AddAsync(bid, ct);
-                    await context.SaveChangesAsync(ct);
-
-                    logger.LogInformation("Bid placed successfully for auction {AuctionId} by bidder {BidderEmail}.", auctionId, bidderEmail);
-                    return SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>.Success(new PlaceBidCommandResult(auctionId));
-                }, cancellationToken);
+                var result = await dbConnection.QuerySingleOrDefaultAsync<(Guid? id, DateTime? enddate, decimal? minimumBid)>(command);
 
                 return result;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error placing bid for auction with ID: {AuctionId}", auctionId);
-                return SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>.Failure(PlaceBidErrorCode.InternalError);
+                logger.LogError(ex, "Error retrieving information from auction with ID: {AuctionId} when placing bid", auctionId);
+                return null;
+            }
+        }
+
+        public async Task<(decimal? lastBid, string? bidderemail)?> GetHighestBidForAuctionAsync(Guid auctionId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var query = "SELECT bidamount, bidderemail FROM bids WHERE auctionid = @auctionId ORDER BY bidamount DESC LIMIT 1";
+                await using var connection = new NpgsqlConnection(connectionStrings.Value.AuctioneerDBConnectionString);
+                var command = new CommandDefinition(query, new { auctionId }, cancellationToken: cancellationToken);
+
+                var result = await dbConnection.QuerySingleOrDefaultAsync<(decimal? lastBid, string? bidderemail)>(command);
+
+                return result;
+
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving information from auction with ID: {AuctionId} when placing bid", auctionId);
+                return null;
             }
         }
     }

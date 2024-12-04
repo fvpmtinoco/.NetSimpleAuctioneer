@@ -2,6 +2,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Application.Policies;
@@ -14,7 +15,8 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
 {
     public class AddHatchbackShould
     {
-        private readonly Mock<ILogger<VehicleRepository>> mockLogger;
+        private readonly Mock<ILogger<VehicleRepository>> mockLoggerRepository;
+        private readonly Mock<ILogger<VehicleService>> mockLoggerService;
         private readonly Mock<IPolicyProvider> mockPolicyProvider;
         private readonly VehicleRepository repository;
         private readonly AuctioneerDbContext context;
@@ -23,14 +25,18 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
         private readonly Fixture fixture;
         private readonly Mock<IVehicleService> mockVehicleService;
         private readonly Mock<IVehicleRepository> mockRepository;
+        private readonly Mock<IOptions<ConnectionStrings>> mockConnectionStrings;
+        private readonly Mock<IDatabaseConnection> mockDbConnection;
 
         public AddHatchbackShould()
         {
             // Mock dependencies
-            mockLogger = new Mock<ILogger<VehicleRepository>>();
+            mockLoggerRepository = new Mock<ILogger<VehicleRepository>>();
+            mockLoggerService = new Mock<ILogger<VehicleService>>();
             mockPolicyProvider = new Mock<IPolicyProvider>();
             mockVehicleService = new Mock<IVehicleService>();
             mockRepository = new Mock<IVehicleRepository>();
+            mockDbConnection = new Mock<IDatabaseConnection>();
 
             // Set up an in-memory database for testing
             var options = new DbContextOptionsBuilder<AuctioneerDbContext>()
@@ -39,6 +45,14 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
 
             // Use the in-memory DbContext
             context = new AuctioneerDbContext(options);
+
+            mockConnectionStrings = new Mock<IOptions<ConnectionStrings>>();
+
+            // Set up mock connection string
+            mockConnectionStrings.Setup(options => options.Value).Returns(new ConnectionStrings
+            {
+                AuctioneerDBConnectionString = "Host=localhost;Port=5432;Database=AuctioneerDB;Username=postgres;Password=postgres"
+            });
 
             // Directly create and mock concrete AsyncPolicy
             mockRetryPolicy = Policy.NoOpAsync();  // This is a simple NoOp policy
@@ -50,15 +64,16 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
 
             repository = new VehicleRepository(
                 context,
-                mockLogger.Object,
-                mockPolicyProvider.Object
+                mockLoggerRepository.Object,
+                mockConnectionStrings.Object,
+                mockDbConnection.Object
             );
 
             fixture = new Fixture();
         }
 
         [Fact]
-        public async Task AddVehicleAsyncShouldAddVehicleSuccessfully()
+        public async Task RepositoryAddVehicleShouldAddVehicleSuccessfully()
         {
             // Arrange
             var vehicle = fixture.Create<Vehicle>();
@@ -68,14 +83,14 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
             var result = await repository.AddVehicleAsync(vehicle, cancellationToken);
 
             // Assert
-            result.HasError.Should().BeFalse();  // Ensure no error occurred
+            result.HasError.Should().BeFalse();
             var addedVehicle = await context.Vehicles.FindAsync(vehicle.Id);
-            addedVehicle.Should().NotBeNull();  // Ensure the vehicle was added
-            addedVehicle.Should().BeEquivalentTo(vehicle);  // Ensure the vehicle data matches
+            addedVehicle.Should().NotBeNull();
+            addedVehicle.Should().BeEquivalentTo(vehicle);
         }
 
         [Fact]
-        public async Task AddVehicleAsyncShouldReturnDuplicatedVehicleErrorForDuplicateId()
+        public async Task RepositoryAddVehicleShouldReturnInternalForDuplicateId()
         {
             // Arrange
             var vehicle = fixture.Create<Vehicle>();
@@ -89,22 +104,22 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
 
             // Assert
             result.HasError.Should().BeTrue();  // Ensure an error occurred
-            result.Error.Should().Be(AddVehicleErrorCode.DuplicatedVehicle);  // Ensure the error code is DuplicatedVehicle
+            result.Error.Should().Be(AddVehicleErrorCode.InternalError);
         }
 
         [Fact]
-        public async Task AddVehicleAsyncShouldReturnInternalErrorOnException()
+        public async Task ServiceAddVehicleShouldReturnInternalErrorOnException()
         {
             // Arrange
-            var vehicle = fixture.Create<Vehicle>();
+            var vehicle = fixture.Create<Hatchback>();
             var cancellationToken = CancellationToken.None;
 
             // Mock IPolicyProvider - No policies so it will throw reference not set
             var mockPolicyProvider = new Mock<IPolicyProvider>();
-            var repository = new VehicleRepository(context, mockLogger.Object, mockPolicyProvider.Object);
+            var service = new VehicleService(mockRepository.Object, mockLoggerService.Object, mockPolicyProvider.Object);
 
             // Act
-            var result = await repository.AddVehicleAsync(vehicle, cancellationToken);
+            var result = await service.AddVehicleAsync(vehicle, cancellationToken);
 
             // Assert
             result.HasError.Should().BeTrue();  // Ensure an error occurred
@@ -112,18 +127,18 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
         }
 
         [Fact]
-        public async Task HandleShouldReturnSuccessWhenVehicleYearIsValid()
+        public async Task HandleShouldReturnSuccessWhenValidationsPass()
         {
             // Arrange
             var command = fixture.Create<AddHatchbackCommand>();
             var cancellationToken = CancellationToken.None;
 
-            mockVehicleService.Setup(x => x.IsVehicleYearValid(command.Year)).Returns(true);
+            mockVehicleService.Setup(x => x.ValidateVehicleAsync(command.Id, command.Year)).ReturnsAsync((AddVehicleErrorCode?)null);
 
-            mockRepository.Setup(repo => repo.AddVehicleAsync(It.IsAny<Vehicle>(), cancellationToken))
+            mockVehicleService.Setup(repo => repo.AddVehicleAsync(It.IsAny<Hatchback>(), cancellationToken))
                 .ReturnsAsync(VoidOrError<AddVehicleErrorCode>.Success());
 
-            var handler = new AddHatchbackHandler(mockRepository.Object, mockVehicleService.Object);
+            var handler = new AddHatchbackHandler(mockVehicleService.Object);
 
             // Act
             var result = await handler.Handle(command, cancellationToken);
@@ -139,9 +154,9 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
             var command = fixture.Create<AddHatchbackCommand>();
             var cancellationToken = CancellationToken.None;
 
-            mockVehicleService.Setup(x => x.IsVehicleYearValid(command.Year)).Returns(false);
+            mockVehicleService.Setup(x => x.ValidateVehicleAsync(command.Id, command.Year)).ReturnsAsync(AddVehicleErrorCode.InvalidYear);
 
-            var handler = new AddHatchbackHandler(mockRepository.Object, mockVehicleService.Object);
+            var handler = new AddHatchbackHandler(mockVehicleService.Object);
 
             // Act
             var result = await handler.Handle(command, cancellationToken);
@@ -159,12 +174,9 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
             var cancellationToken = CancellationToken.None;
 
             // Mock the IVehicleService to return true for a valid year
-            mockVehicleService.Setup(x => x.IsVehicleYearValid(command.Year)).Returns(true);
+            mockVehicleService.Setup(x => x.ValidateVehicleAsync(command.Id, command.Year)).ReturnsAsync(AddVehicleErrorCode.DuplicatedVehicle);
 
-            mockRepository.Setup(repo => repo.AddVehicleAsync(It.IsAny<Vehicle>(), cancellationToken))
-                .ReturnsAsync(VoidOrError<AddVehicleErrorCode>.Failure(AddVehicleErrorCode.DuplicatedVehicle));
-
-            var handler = new AddHatchbackHandler(mockRepository.Object, mockVehicleService.Object);
+            var handler = new AddHatchbackHandler(mockVehicleService.Object);
 
             // Act
             var result = await handler.Handle(command, cancellationToken);
@@ -172,6 +184,34 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
             // Assert
             result.HasError.Should().BeTrue();
             result.Error.Should().Be(AddVehicleErrorCode.DuplicatedVehicle);
+        }
+
+        [Fact]
+        public void MapToEntityShouldMapHatchbackToVehicle()
+        {
+            // Arrange
+            var hatchback = new Hatchback
+            {
+                Id = Guid.NewGuid(),
+                Manufacturer = "HatchbackManufacturer",
+                Model = "HatchbackModel",
+                Year = 2022,
+                StartingBid = 10000m,
+                VehicleType = VehicleType.Hatchback,
+                NumberOfDoors = 2
+            };
+
+            // Act
+            var vehicleEntity = VehicleMapper.MapToEntity(hatchback);
+
+            // Assert
+            vehicleEntity.Id.Should().Be(hatchback.Id);
+            vehicleEntity.Manufacturer.Should().Be(hatchback.Manufacturer);
+            vehicleEntity.Model.Should().Be(hatchback.Model);
+            vehicleEntity.Year.Should().Be(hatchback.Year);
+            vehicleEntity.StartingBid.Should().Be(hatchback.StartingBid);
+            vehicleEntity.VehicleType.Should().Be((int)hatchback.VehicleType);
+            vehicleEntity.NumberOfDoors.Should().Be(hatchback.NumberOfDoors);
         }
     }
 }

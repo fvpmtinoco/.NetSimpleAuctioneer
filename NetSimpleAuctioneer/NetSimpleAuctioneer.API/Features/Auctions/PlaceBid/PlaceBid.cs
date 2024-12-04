@@ -28,7 +28,7 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
             {
                 var action = response.Error switch
                 {
-                    PlaceBidErrorCode.AuctionNotFound => StatusCode(StatusCodes.Status422UnprocessableEntity, PlaceBidErrorCode.AuctionNotFound),
+                    PlaceBidErrorCode.InvalidAuction => StatusCode(StatusCodes.Status422UnprocessableEntity, PlaceBidErrorCode.InvalidAuction),
                     PlaceBidErrorCode.BidAmountTooLow => StatusCode(StatusCodes.Status422UnprocessableEntity, PlaceBidErrorCode.BidAmountTooLow),
                     PlaceBidErrorCode.ExistingHigherBid => StatusCode(StatusCodes.Status409Conflict, PlaceBidErrorCode.ExistingHigherBid),
                     PlaceBidErrorCode.BidderHasHigherBid => StatusCode(StatusCodes.Status409Conflict, PlaceBidErrorCode.BidderHasHigherBid),
@@ -92,7 +92,7 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
     public enum PlaceBidErrorCode
     {
         [Description("Provided auction identification not found")]
-        AuctionNotFound,
+        InvalidAuction,
 
         [Description("The auction for the provided identification has already closed")]
         AuctionAlreadyClosed,
