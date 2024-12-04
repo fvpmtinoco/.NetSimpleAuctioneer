@@ -1,6 +1,8 @@
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using NetSimpleAuctioneer.API.Application;
+using NetSimpleAuctioneer.API.Application.Behaviors;
 using NetSimpleAuctioneer.API.Application.Policies;
 using NetSimpleAuctioneer.API.Database;
 using System.Reflection;
@@ -25,6 +27,8 @@ builder.Services.AddMediatR(config =>
 {
     config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
 });
+
+builder.Services.AddScoped(typeof(IPipelineBehavior<,>), typeof(LoggingPipelineBehavior<,>));
 
 // Register IDatabaseConnection as NpgsqlDatabaseConnection
 builder.Services.AddScoped<IDatabaseConnection>(provider =>
