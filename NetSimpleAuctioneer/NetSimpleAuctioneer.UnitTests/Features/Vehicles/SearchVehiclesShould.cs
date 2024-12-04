@@ -17,7 +17,6 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
     {
         private readonly Mock<ILogger<SearchRepository>> _loggerRepositoryMock;
         private readonly Mock<ILogger<SearchService>> _loggerServiceMock;
-        private readonly Mock<IPolicyProvider> _policyProviderMock;
         private readonly Mock<IOptions<ConnectionStrings>> _connectionStringsMock;
         private readonly Mock<IDatabaseConnection> _dbConnectionMock;
         private readonly SearchRepository _repository;
@@ -32,7 +31,6 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
         {
             _loggerRepositoryMock = new Mock<ILogger<SearchRepository>>();
             _loggerServiceMock = new Mock<ILogger<SearchService>>();
-            _policyProviderMock = new Mock<IPolicyProvider>();
             _connectionStringsMock = new Mock<IOptions<ConnectionStrings>>();
             _dbConnectionMock = new Mock<IDatabaseConnection>();
 
