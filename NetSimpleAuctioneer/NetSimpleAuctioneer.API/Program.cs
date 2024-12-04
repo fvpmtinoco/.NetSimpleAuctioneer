@@ -1,12 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Application.Policies;
 using NetSimpleAuctioneer.API.Database;
-using NetSimpleAuctioneer.API.Features.Auctions.CloseAuction;
-using NetSimpleAuctioneer.API.Features.Auctions.PlaceBid;
-using NetSimpleAuctioneer.API.Features.Auctions.StartAuction;
-using NetSimpleAuctioneer.API.Features.Vehicles.Search;
-using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Unchase.Swashbuckle.AspNetCore.Extensions.Extensions;
@@ -38,20 +34,10 @@ builder.Services.AddScoped<IDatabaseConnection>(provider =>
 });
 
 // Register the PolicyProvider as IPolicyProvider (Polly policies)
-//builder.Services.AddSingleton<IPolicyProvider, PolicyProvider>();
 builder.Services.AddScoped<IPolicyProvider, PolicyProvider>();
 
-builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
-builder.Services.AddScoped<IStartAuctionRepository, StartAuctionRepository>();
-builder.Services.AddScoped<ICloseAuctionRepository, CloseAuctionRepository>();
-builder.Services.AddScoped<IPlaceBidRepository, PlaceBidRepository>();
-builder.Services.AddScoped<ISearchRepository, SearchRepository>();
-builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
-builder.Services.AddScoped<ICloseAuctionService, CloseAuctionService>();
-builder.Services.AddScoped<IPlaceBidService, PlaceBidService>();
-builder.Services.AddScoped<IStartAuctionService, StartAuctionService>();
-builder.Services.AddScoped<IVehicleService, VehicleService>();
-builder.Services.AddScoped<ISearchService, SearchService>();
+// Inject classes whose names end with "Service" or "Repository"
+builder.Services.AddAutoInjectorCustom();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
