@@ -1,4 +1,5 @@
-﻿using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
+﻿using NetSimpleAuctioneer.API.Database;
+using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
 
 namespace NetSimpleAuctioneer.API.Features.Vehicles.AddSUV
 {
@@ -15,5 +16,10 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.AddSUV
         public decimal StartingBid { get; set; }
         public VehicleType VehicleType { get; set; }
         public int NumberOfSeats { get; set; }
+
+        public void MapToEntitySpecificProperties(Vehicle vehicleEntity)
+        {
+            vehicleEntity.NumberOfSeats = this.NumberOfSeats;
+        }
     }
 }

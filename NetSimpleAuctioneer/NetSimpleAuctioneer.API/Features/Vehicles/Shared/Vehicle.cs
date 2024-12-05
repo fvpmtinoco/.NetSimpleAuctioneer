@@ -1,4 +1,6 @@
-﻿namespace NetSimpleAuctioneer.API.Features.Vehicles.Shared
+﻿using NetSimpleAuctioneer.API.Database;
+
+namespace NetSimpleAuctioneer.API.Features.Vehicles.Shared
 {
     public interface IVehicle
     {
@@ -8,5 +10,7 @@
         int Year { get; set; }
         decimal StartingBid { get; set; }
         VehicleType VehicleType { get; set; }
+
+        void MapToEntitySpecificProperties(Vehicle vehicleEntity);
     }
 }

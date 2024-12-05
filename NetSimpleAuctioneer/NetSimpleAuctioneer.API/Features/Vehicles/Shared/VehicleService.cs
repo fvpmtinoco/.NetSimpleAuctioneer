@@ -1,10 +1,6 @@
 ﻿using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Application.Policies;
 using NetSimpleAuctioneer.API.Database;
-using NetSimpleAuctioneer.API.Features.Vehicles.AddHatchback;
-using NetSimpleAuctioneer.API.Features.Vehicles.AddSedan;
-using NetSimpleAuctioneer.API.Features.Vehicles.AddSUV;
-using NetSimpleAuctioneer.API.Features.Vehicles.AddTruck;
 using Polly;
 
 namespace NetSimpleAuctioneer.API.Features.Vehicles.Shared
@@ -93,22 +89,8 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Shared
                 VehicleType = (int)vehicle.VehicleType
             };
 
-            // Specific logic for different types of vehicles
-            switch (vehicle)
-            {
-                case Truck truck:
-                    vehicleEntity.LoadCapacity = truck.LoadCapacity;
-                    break;
-                case Sedan sedan:
-                    vehicleEntity.NumberOfDoors = sedan.NumberOfDoors;
-                    break;
-                case Hatchback hatchback:
-                    vehicleEntity.NumberOfDoors = hatchback.NumberOfDoors;
-                    break;
-                case SUV suv:
-                    vehicleEntity.NumberOfSeats = suv.NumberOfSeats;
-                    break;
-            }
+            // Delegate to the specific vehicle type to map its properties
+            vehicle.MapToEntitySpecificProperties(vehicleEntity);
 
             return vehicleEntity;
         }
