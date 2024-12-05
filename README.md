@@ -6,7 +6,7 @@
 
 ## Key Design Features
 
-### 1. Vertical Slice Architecture (VSA)
+### Vertical Slice Architecture (VSA)
 The project employs [Vertical Slice Architecture (VSA)](https://www.milanjovanovic.tech/blog/vertical-slice-architecture) to organize all feature-specific logic (e.g., commands, handlers, models, validations) into modular slices. This approach ensures a maintainable and cohesive structure.
 
 - **Self-Contained Endpoints**: Each endpoint (e.g., `AddTruck`, `AddSUV`, `StartAuction`) is fully self-contained, minimizing dependencies and simplifying development.
@@ -14,10 +14,10 @@ The project employs [Vertical Slice Architecture (VSA)](https://www.milanjovanov
 - **When to Consider Clean Architecture**: For projects with more complex requirements, where the application layer changes more frequently than the domain layer, Clean Architecture might be a more appropriate choice.
 - **Shared Resources**: Common services, repositories, and shared logic are housed in a dedicated `Shared` folder, intended for reusability and consistency across features.
 
-### 2. Resilience in Database Connection (Polly)
+### Resilience in Database Connection (Polly)
 The project uses Polly for resilience, implementing retry and circuit breaker policies for handling transient database failures. Retry attempts are made a set number of times with exponential backoff, while the circuit breaker prevents further retries after repeated failures.
 
-### 3. Mediator Pattern (Mediatr)
+### Mediator Pattern (Mediatr)
 The Mediator pattern is implemented using Mediatr, which decouples components by sending requests through a mediator. Each request (e.g., AddTruckCommand) is handled by a dedicated handler, ensuring a clear separation of concerns and making the codebase more maintainable.
 Additionally, a logging pipeline behavior was introduced, which logs the requests and responses for better traceability and debugging.
 
@@ -40,7 +40,7 @@ Vehicles are added through separate endpoints for each type (e.g., `AddTruck`, `
   - **Separate Tables**: In a relational database, using a single `Vehicle` table to store all vehicle types can result in redundant fields. A possible improvement would be to use separate tables for each vehicle type (e.g., `Truck`, `Sedan`) to avoid unnecessary fields in the `Vehicle` table.
   
   #### NoSQL Approach (Alternative):
-  - If a **NoSQL database** was used (e.g., MongoDB, DynamoDB), the approach would differ. Each vehicle type could be stored in its own collection (e.g., `Trucks`, `Sedans`, `SUVs`), with documents containing only the relevant fields for that vehicle type. This would avoid redundancy in data storage, as   each document could have a flexible schema tailored to the specific vehicle type. NoSQL would allow for a more scalable, schema-less design, where each vehicle type can evolve independently without affecting others. However, the search vehicles use case could be more complex, as would require careful planning for queries across different collections
+  - If a **NoSQL database** was used (e.g., MongoDB, DynamoDB), the approach would differ. Each vehicle type could be stored in its own collection (e.g., `Trucks`, `Sedans`, `SUVs`), with documents containing only the relevant fields for that vehicle type. This would avoid redundancy in data storage, as each document could have a flexible schema tailored to the specific vehicle type. NoSQL would allow for a more scalable, schema-less design, where each vehicle type can evolve independently without affecting others. However, the search vehicles use case could be more complex, as would require careful planning for queries across different collections
 
 ### **Concurrency**
 The current implementation is not prepared for high concurrency, especially in the bidding use case. Using multiple instances of the API, in the current scenario if two bidders place a bid almost simultaneously, they both can be notified that their bid was inserted correctly. On possible approach was to implement a queue base system, similar to this:
@@ -61,12 +61,10 @@ Incorporating cache expiration or invalidation strategies would ensure that the 
 ### **Contract validations**
 This API uses ASP.NET Core's built-in validation with Data Annotations. Considered the approach suitable for this project because it is a simple API with no complex validation rules. 
 All validation logic is defined directly in the model classes using attributes like `[Required]`, `[EmailAddress]`, and `[Range]`. This keeps the implementation straightforward and easy to maintain.
-
-### **More complex validations***
 For more complex scenarios or reusable validation logic, external libraries like FluentValidation could be considered in future updates.
 
 ### **Pagination**
-Pagination is used in the search vehicle functionality. However, due to lack of time, it does not provide feedback to client regarding total count records neither total pages. 
+Pagination is used in the search vehicle functionality. However, due to lack of time, it does not provide feedback to client regarding total count records neither total pages. It also don't retrieve the specific attributes for each vehicle.
 Also, if a vehicle is inserted between the fetching, it might not be returned. In this case, I considered a vehicle listing does not need to reflect real-time accuracy or immediate consistency.
 
 
