@@ -3,7 +3,6 @@
 ## Assumptions
 1. A vehicle can participate in multiple auctions, as long as these auctions occur at different times. For example, once an auction closes, the vehicle is considered "released" and can be placed in another auction at a later time.
 2. The system will maintain only two core domains: Vehicles and Auction. No additional domains will be introduced. 
-3. 
 
 ## Key Design Features
 
