@@ -2,7 +2,8 @@
 
 ## Assumptions
 1. A vehicle can participate in multiple auctions, as long as these auctions occur at different times. For example, once an auction closes, the vehicle is considered "released" and can be placed in another auction at a later time.
-2. The system will maintain only two core domains: Vehicles and Auction. No additional domains will be introduced.
+2. The system will maintain only two core domains: Vehicles and Auction. No additional domains will be introduced. 
+3. 
 
 ## Key Design Features
 
@@ -11,7 +12,7 @@ The project employs [Vertical Slice Architecture (VSA)](https://www.milanjovanov
 
 - **Self-Contained Endpoints**: Each endpoint (e.g., `AddTruck`, `AddSUV`, `StartAuction`) is fully self-contained, minimizing dependencies and simplifying development.
 - **VSA** was chosen over Clean Architecture due to its lower overhead, making it better suited for this project's scope, which includes only eight endpoints and relatively straightforward business logic.
-- **When to Consider Clean Architecture**: For projects with more complex requirements, where the application layer changes more frequently than the domain layer, Clean Architecture might be a more appropriate choice.
+- **When to Consider Clean Architecture**: Given assumption #2, I considered VSA a suitable choice for this scenario. However, if the complexity were to increase beyond this scope, Clean Architecture would help enforce better separation of concerns to avoid tight coupling between layers, ensuring that the core business logic remains stable even as the application layer evolves more frequently.
 - **Shared Resources**: Common services, repositories, and shared logic are housed in a dedicated `Shared` folder, intended for reusability and consistency across features.
 
 ### Resilience in Database Connection (Polly)
