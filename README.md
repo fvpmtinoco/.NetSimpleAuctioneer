@@ -5,7 +5,6 @@
 2. The system will maintain only two core functionalities, auction and vehicle management. No additional domains will be introduced.
 3. Search results will exclude vehicles associated with closed auctions, unless they are also part of another open auction.
 
-
 ## Key Design Features ##
 
 ### Vertical Slice Architecture (VSA)
@@ -29,7 +28,8 @@ Additionally, a logging pipeline behavior was introduced, which logs the request
 ## Improvements to consider
 
 ### **1. Separation of Vehicle Addition with Unified Entity for Storage**
-Vehicles are added through separate endpoints for each type (e.g., `AddTruck`, `AddSedan`), while all vehicle data is stored in a single `Vehicle` entity that includes both common and specific properties. For this purpose a relational database was used (PostgreSQL), mainly for simplicity reasons.
+Vehicles are added through separate endpoints for each type (e.g., `AddTruck`, `AddSedan`), while all vehicle data is stored in a single `Vehicle` entity that includes both common and specific properties. 
+For this purpose a relational database (PostgreSQL) was chosen for simplicity, with Dapper used for validation queries and search functionality, due to its efficiency with relational data. Tried to establish a clear separation of concerns, allowing the application layer to remain unchanged if the data persistence model is switched.
 
   ##### Benefits:
   - **Separate Endpoints**: Each vehicle type has its own endpoint, ensuring only relevant fields are sent.
