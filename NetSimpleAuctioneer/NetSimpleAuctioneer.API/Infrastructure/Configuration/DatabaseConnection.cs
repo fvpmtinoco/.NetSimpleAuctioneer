@@ -1,7 +1,7 @@
 ﻿using Dapper;
 using Npgsql;
 
-namespace NetSimpleAuctioneer.API.Database
+namespace NetSimpleAuctioneer.API.Infrastructure.Configuration
 {
     /// <summary>
     /// Represents a database connection abstraction for performing asynchronous database queries.

@@ -2,7 +2,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using NetSimpleAuctioneer.API.Application;
-using NetSimpleAuctioneer.API.Database;
+using NetSimpleAuctioneer.API.Domain;
+using NetSimpleAuctioneer.API.Infrastructure.Configuration;
+using NetSimpleAuctioneer.API.Infrastructure.Data;
 using Npgsql;
 
 namespace NetSimpleAuctioneer.API.Features.Vehicles.Shared

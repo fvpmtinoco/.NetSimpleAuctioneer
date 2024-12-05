@@ -6,9 +6,11 @@ using Microsoft.Extensions.Options;
 using Moq;
 using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Application.Policies;
-using NetSimpleAuctioneer.API.Database;
+using NetSimpleAuctioneer.API.Domain;
 using NetSimpleAuctioneer.API.Features.Vehicles.AddSedan;
 using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
+using NetSimpleAuctioneer.API.Infrastructure.Configuration;
+using NetSimpleAuctioneer.API.Infrastructure.Data;
 using Polly;
 
 namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles

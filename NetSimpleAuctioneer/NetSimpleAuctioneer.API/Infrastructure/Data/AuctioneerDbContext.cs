@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using NetSimpleAuctioneer.API.Domain;
 
-namespace NetSimpleAuctioneer.API.Database
+namespace NetSimpleAuctioneer.API.Infrastructure.Data
 {
     public class AuctioneerDbContext(DbContextOptions<AuctioneerDbContext> options) : DbContext(options)
     {

@@ -1,8 +1,8 @@
 ﻿using Dapper;
 using Microsoft.Extensions.Options;
 using NetSimpleAuctioneer.API.Application;
-using NetSimpleAuctioneer.API.Database;
 using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
+using NetSimpleAuctioneer.API.Infrastructure.Configuration;
 using Npgsql;
 
 namespace NetSimpleAuctioneer.API.Features.Vehicles.Search

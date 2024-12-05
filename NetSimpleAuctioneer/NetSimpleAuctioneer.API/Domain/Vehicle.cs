@@ -1,4 +1,4 @@
-﻿namespace NetSimpleAuctioneer.API.Database
+﻿namespace NetSimpleAuctioneer.API.Domain
 {
     public class Vehicle
     {

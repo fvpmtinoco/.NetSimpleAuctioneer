@@ -1,4 +1,4 @@
-﻿using NetSimpleAuctioneer.API.Database;
+﻿using NetSimpleAuctioneer.API.Domain;
 
 namespace NetSimpleAuctioneer.API.Features.Vehicles.Shared
 {

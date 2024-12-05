@@ -1,6 +1,6 @@
 ﻿using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Application.Policies;
-using NetSimpleAuctioneer.API.Database;
+using NetSimpleAuctioneer.API.Domain;
 using Polly;
 
 namespace NetSimpleAuctioneer.API.Features.Auctions.StartAuction

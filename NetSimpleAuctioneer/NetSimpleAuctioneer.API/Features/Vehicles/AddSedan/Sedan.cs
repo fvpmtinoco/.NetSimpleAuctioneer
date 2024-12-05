@@ -1,4 +1,4 @@
-﻿using NetSimpleAuctioneer.API.Database;
+﻿using NetSimpleAuctioneer.API.Domain;
 using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
 
 namespace NetSimpleAuctioneer.API.Features.Vehicles.AddSedan

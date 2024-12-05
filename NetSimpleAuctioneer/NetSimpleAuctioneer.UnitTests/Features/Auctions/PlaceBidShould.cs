@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Application.Policies;
-using NetSimpleAuctioneer.API.Database;
+using NetSimpleAuctioneer.API.Domain;
 using NetSimpleAuctioneer.API.Features.Auctions.PlaceBid;
 using Polly;
 
