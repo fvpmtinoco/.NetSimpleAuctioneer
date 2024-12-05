@@ -2,7 +2,8 @@
 
 ## Assumptions
 1. A vehicle can participate in multiple auctions, as long as these auctions occur at different times. For example, once an auction closes, the vehicle is considered "released" and can be placed in another auction at a later time.
-2. The system will maintain only two core functionalities, auction and vehicle management. No additional domains will be introduced. 
+2. The system will maintain only two core functionalities, auction and vehicle management. No additional domains will be introduced.
+3. Search results will exclude vehicles associated with closed auctions, unless they are also part of another open auction.
 
 
 ## Key Design Features ##
