@@ -27,7 +27,7 @@ Additionally, a logging pipeline behavior was introduced, which logs the request
 
 ## Improvements to consider
 
-### **Separation of Vehicle Addition with Unified Entity for Storage**
+### **1. Separation of Vehicle Addition with Unified Entity for Storage**
 Vehicles are added through separate endpoints for each type (e.g., `AddTruck`, `AddSedan`), while all vehicle data is stored in a single `Vehicle` entity that includes both common and specific properties. For this purpose a relational database was used (PostgreSQL), mainly for simplicity reasons.
 
   ##### Benefits:
@@ -46,7 +46,7 @@ Vehicles are added through separate endpoints for each type (e.g., `AddTruck`, `
   ##### NoSQL Approach (Alternative):
   - If a **NoSQL database** was used (e.g., MongoDB, DynamoDB), the approach would differ. Each vehicle type could be stored in its own collection (e.g., `Trucks`, `Sedans`, `SUVs`), with documents containing only the relevant fields for that vehicle type. This would avoid redundancy in data storage, as each document could have a flexible schema tailored to the specific vehicle type. NoSQL would allow for a more scalable, schema-less design, where each vehicle type can evolve independently without affecting others. However, the search vehicles use case could be more complex, as would require careful planning for queries across different collections
 
-### **Concurrency**
+### **2. Concurrency**
 The current implementation is not prepared for high concurrency, especially in the bidding use case. Using multiple instances of the API, in the current scenario if two bidders place a bid almost simultaneously, they both can be notified that their bid was inserted correctly. On possible approach was to implement a queue base system, similar to this:
   
   - Bid Submission:
@@ -57,21 +57,21 @@ The current implementation is not prepared for high concurrency, especially in t
   - Handling: Since the queue processes bids in the order they were received, there’s a high mitigation of two bids conflicting when being inserted into the database. The system will handle the bids one at a time, in the correct order.
   - Feedback to Users: Once the bid is processed and inserted, the worker can notify the user whether their bid was successful or not (via callback, event, or polling).
 
-### **Caching**
+### **3. Caching**
 Caching was not implemented due to time constraints, but it would be a logical approach in the search functionality, assuming filter fields are limited to predefined options (not free text search). In a distributed system, using a caching solution like Redis could be highly beneficial.
 Implementing caching would improve frequently requested search results, especially those with common filters. 
 Incorporating cache expiration or invalidation strategies would ensure that the data remains reasonably up to date without causing excessive load on the database. Proper cache invalidation mechanisms would be necessary to handle changes in the underlying data. In this API, where only adding vehicles is possible, invalidation would have to occur after adding a new vehicle and closing an auction. Fine grained cache invalidation could be considered in this scenario, depending on its complexity.
 
-### **Contract validations**
+### **4. Contract validations**
 This API uses ASP.NET Core's built-in validation with Data Annotations. Considered the approach suitable for this project because it is a simple API with no complex validation rules. 
 All validation logic is defined directly in the model classes using attributes like `[Required]`, `[EmailAddress]`, and `[Range]`. This keeps the implementation straightforward and easy to maintain.
 For more complex scenarios or reusable validation logic, external libraries like FluentValidation could be considered in future updates.
 
-### **Pagination**
+### **5. Pagination**
 Pagination is used in the search vehicle functionality. However, due to lack of time, it does not provide feedback to client regarding total count records neither total pages. It also don't retrieve the specific attributes for each vehicle.
 Also, if a vehicle is inserted between the fetching, it might not be returned. In this case, I considered a vehicle listing does not need to reflect real-time accuracy or immediate consistency.
 
-### **Tests**
+### **6. Tests**
 Extensive unit and integration tests were written that did their purpose: Detect issues and certifying that some refactors made did not break the functionalities. However the test code coverage could be improved. Due to lack of time not all implementations are backed with tests.
 
 
