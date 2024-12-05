@@ -67,5 +67,8 @@ For more complex scenarios or reusable validation logic, external libraries like
 Pagination is used in the search vehicle functionality. However, due to lack of time, it does not provide feedback to client regarding total count records neither total pages. It also don't retrieve the specific attributes for each vehicle.
 Also, if a vehicle is inserted between the fetching, it might not be returned. In this case, I considered a vehicle listing does not need to reflect real-time accuracy or immediate consistency.
 
+### **Tests**
+Extensive unit and integration tests were written that did their purpose: Detect issues and certifying that some refactors made did not break the functionalities. However the test code coverage could be improved. Due to lack of time not all implementations are backed with tests.
+
 
 
