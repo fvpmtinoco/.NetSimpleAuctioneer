@@ -26,20 +26,20 @@ Additionally, a logging pipeline behavior was introduced, which logs the request
 ### **Separation of Vehicle Addition with Unified Entity for Storage**
 Vehicles are added through separate endpoints for each type (e.g., `AddTruck`, `AddSedan`), while all vehicle data is stored in a single `Vehicle` entity that includes both common and specific properties. For this purpose a relational database was used (PostgreSQL), mainly for simplicity reasons.
 
-  #### Benefits:
+  ##### Benefits:
   - **Separate Endpoints**: Each vehicle type has its own endpoint, ensuring only relevant fields are sent.
   - **Simplified Validation**: Each vehicle type is validated individually.
   - **Single Storage Entity**: A single `Vehicle` entity stores all vehicle data, simplifying the database schema.
   
-  #### Drawbacks:
+  ##### Drawbacks:
   - **Redundant Fields**: Some fields in the entity may remain empty for certain vehicle types, leading to inefficiency.
   - **Mapping Complexity**: Mapping vehicle-specific data to a generic entity can become complex as new vehicle types are added.
   - **Scalability**: Adding more vehicle types requires modifying the entity, mappings, and endpoints.
   
-  #### Possible Refactoring:
+  ##### Possible Refactoring:
   - **Separate Tables**: In a relational database, using a single `Vehicle` table to store all vehicle types can result in redundant fields. A possible improvement would be to use separate tables for each vehicle type (e.g., `Truck`, `Sedan`) to avoid unnecessary fields in the `Vehicle` table.
   
-  #### NoSQL Approach (Alternative):
+  ##### NoSQL Approach (Alternative):
   - If a **NoSQL database** was used (e.g., MongoDB, DynamoDB), the approach would differ. Each vehicle type could be stored in its own collection (e.g., `Trucks`, `Sedans`, `SUVs`), with documents containing only the relevant fields for that vehicle type. This would avoid redundancy in data storage, as each document could have a flexible schema tailored to the specific vehicle type. NoSQL would allow for a more scalable, schema-less design, where each vehicle type can evolve independently without affecting others. However, the search vehicles use case could be more complex, as would require careful planning for queries across different collections
 
 ### **Concurrency**
@@ -54,9 +54,9 @@ The current implementation is not prepared for high concurrency, especially in t
   - Feedback to Users: Once the bid is processed and inserted, the worker can notify the user whether their bid was successful or not (via callback, event, or polling).
 
 ### **Caching**
-Caching was not implemented due to time constraints, but it would be a logical approach at the search level, assuming filter fields are limited to predefined options (not free text search). In a distributed system, using a caching solution like Redis could be highly beneficial.
+Caching was not implemented due to time constraints, but it would be a logical approach in the search functionality, assuming filter fields are limited to predefined options (not free text search). In a distributed system, using a caching solution like Redis could be highly beneficial.
 Implementing caching would improve frequently requested search results, especially those with common filters. 
-Incorporating cache expiration or invalidation strategies would ensure that the data remains reasonably fresh without causing excessive load on the database. Proper cache invalidation mechanisms would be necessary to handle changes in the underlying data. In this API, where only adding vehicles is possible, invalidation would have to occur after adding a new vehicle and closing an auction. Fine grained cache invalidation could be considered in this scenario, depending on its complexity.
+Incorporating cache expiration or invalidation strategies would ensure that the data remains reasonably up to date without causing excessive load on the database. Proper cache invalidation mechanisms would be necessary to handle changes in the underlying data. In this API, where only adding vehicles is possible, invalidation would have to occur after adding a new vehicle and closing an auction. Fine grained cache invalidation could be considered in this scenario, depending on its complexity.
 
 ### **Contract validations**
 This API uses ASP.NET Core's built-in validation with Data Annotations. Considered the approach suitable for this project because it is a simple API with no complex validation rules. 
