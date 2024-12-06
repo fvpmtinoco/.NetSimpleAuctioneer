@@ -1,10 +1,7 @@
-﻿using Dapper;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.EntityFrameworkCore;
 using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Domain;
-using NetSimpleAuctioneer.API.Infrastructure.Configuration;
 using NetSimpleAuctioneer.API.Infrastructure.Data;
-using Npgsql;
 
 namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
 {
@@ -32,10 +29,10 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
         /// <param name="auctionId"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<(decimal? lastBid, string? bidderemail)?> GetHighestBidForAuctionAsync(Guid auctionId, CancellationToken cancellationToken);
+        Task<(decimal? lastBid, string? bidderEmail)?> GetHighestBidForAuctionAsync(Guid auctionId, CancellationToken cancellationToken);
     }
 
-    public class PlaceBidRepository(AuctioneerDbContext context, ILogger<PlaceBidRepository> logger, IOptions<ConnectionStrings> connectionStrings, IDatabaseConnection dbConnection) : IPlaceBidRepository
+    public class PlaceBidRepository(AuctioneerDbContext context, ILogger<PlaceBidRepository> logger) : IPlaceBidRepository
     {
         public async Task<SuccessOrError<PlaceBidCommandResult, PlaceBidErrorCode>> PlaceBidAsync(Bid bid, CancellationToken cancellationToken)
         {
@@ -58,13 +55,20 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
         {
             try
             {
-                var query = @"SELECT id, enddate, minimumbid FROM auction WHERE id = @auctionId";
-                await using var connection = new NpgsqlConnection(connectionStrings.Value.AuctioneerDBConnectionString);
-                var command = new CommandDefinition(query, new { auctionId }, cancellationToken: cancellationToken);
+                var auction = await context.Auctions
+                    .Where(a => a.Id == auctionId)
+                    .Select(a => new
+                    {
+                        a.Id,
+                        a.EndDate,
+                        MinimumBid = a.Vehicle!.StartingBid
+                    })
+                    .SingleOrDefaultAsync(cancellationToken);
 
-                var result = await dbConnection.QuerySingleOrDefaultAsync<(Guid? id, DateTime? enddate, decimal? minimumBid)>(command);
+                if (auction == null)
+                    return null;
 
-                return result;
+                return (auction.Id, auction.EndDate, auction.MinimumBid);
             }
             catch (Exception ex)
             {
@@ -73,22 +77,25 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
             }
         }
 
-        public async Task<(decimal? lastBid, string? bidderemail)?> GetHighestBidForAuctionAsync(Guid auctionId, CancellationToken cancellationToken)
+        public async Task<(decimal? lastBid, string? bidderEmail)?> GetHighestBidForAuctionAsync(Guid auctionId, CancellationToken cancellationToken)
         {
             try
             {
-                var query = "SELECT bidamount, bidderemail FROM bids WHERE auctionid = @auctionId ORDER BY bidamount DESC LIMIT 1";
-                await using var connection = new NpgsqlConnection(connectionStrings.Value.AuctioneerDBConnectionString);
-                var command = new CommandDefinition(query, new { auctionId }, cancellationToken: cancellationToken);
+                var highestBid = await context.Bids
+                    .Where(b => b.AuctionId == auctionId)
+                    .OrderByDescending(b => b.BidAmount)
+                    .Select(b => new { b.BidAmount, b.BidderEmail })
+                    .FirstOrDefaultAsync(cancellationToken);
 
-                var result = await dbConnection.QuerySingleOrDefaultAsync<(decimal? lastBid, string? bidderemail)>(command);
+                // No bids
+                if (highestBid == null)
+                    return (null, null);
 
-                return result;
-
+                return (highestBid.BidAmount, highestBid.BidderEmail);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error retrieving information from auction with ID: {AuctionId} when placing bid", auctionId);
+                logger.LogError(ex, "Error retrieving highest bid for auction with ID: {AuctionId}", auctionId);
                 return null;
             }
         }

@@ -44,6 +44,10 @@ namespace NetSimpleAuctioneer.API.Infrastructure.Data
                 entity.Property(a => a.StartDate).IsRequired().HasColumnName("startdate");
                 entity.Property(a => a.EndDate).HasColumnName("enddate");
                 entity.Property(a => a.VehicleId).IsRequired().HasColumnName("vehicleid");
+
+                entity.HasOne(a => a.Vehicle)
+                    .WithMany(v => v.Auctions)
+                    .HasForeignKey(a => a.VehicleId);
             });
 
             // Bid Configuration

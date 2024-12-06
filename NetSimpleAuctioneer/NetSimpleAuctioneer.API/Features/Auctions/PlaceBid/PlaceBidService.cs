@@ -94,7 +94,7 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.PlaceBid
                 return PlaceBidErrorCode.ExistingHigherBid;
             }
 
-            if (command.BidderEmail.Equals(bidInformation.Value.bidderemail, StringComparison.InvariantCultureIgnoreCase))
+            if (command.BidderEmail.Equals(bidInformation.Value.bidderEmail, StringComparison.InvariantCultureIgnoreCase))
             {
                 logger.LogWarning("Bidder {BidderEmail} already has the highest bid for auction {AuctionId}.", command.BidderEmail, command.AuctionId);
                 return PlaceBidErrorCode.BidderHasHigherBid;

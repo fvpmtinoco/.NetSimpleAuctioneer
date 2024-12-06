@@ -1,10 +1,8 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Application.Behaviors;
 using NetSimpleAuctioneer.API.Application.Policies;
-using NetSimpleAuctioneer.API.Infrastructure.Configuration;
 using NetSimpleAuctioneer.API.Infrastructure.Data;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -20,9 +18,6 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<AuctioneerDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("AuctioneerDBConnectionString")));
 
-// Get connection string from appsettings
-builder.Services.Configure<ConnectionStrings>(builder.Configuration.GetSection(nameof(ConnectionStrings)));
-
 // Register MediatR services from the current assembly
 builder.Services.AddMediatR(config =>
 {
@@ -30,13 +25,6 @@ builder.Services.AddMediatR(config =>
 });
 
 builder.Services.AddScoped(typeof(IPipelineBehavior<,>), typeof(LoggingPipelineBehavior<,>));
-
-// Register IDatabaseConnection as NpgsqlDatabaseConnection
-builder.Services.AddScoped<IDatabaseConnection>(provider =>
-{
-    var connectionString = provider.GetRequiredService<IOptions<ConnectionStrings>>().Value.AuctioneerDBConnectionString;
-    return new NpgsqlDatabaseConnection(connectionString!);
-});
 
 // Register the PolicyProvider as IPolicyProvider (Polly policies)
 builder.Services.AddScoped<IPolicyProvider, PolicyProvider>();

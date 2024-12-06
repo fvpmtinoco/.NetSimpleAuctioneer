@@ -1,10 +1,7 @@
-﻿using Dapper;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.EntityFrameworkCore;
 using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Domain;
-using NetSimpleAuctioneer.API.Infrastructure.Configuration;
 using NetSimpleAuctioneer.API.Infrastructure.Data;
-using Npgsql;
 
 namespace NetSimpleAuctioneer.API.Features.Auctions.StartAuction
 {
@@ -34,7 +31,7 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.StartAuction
         /// <returns></returns>
         Task<bool?> ActiveAuctionForVehicleExistsAsync(Guid vehicleId, CancellationToken cancellationToken);
     }
-    public class StartAuctionRepository(AuctioneerDbContext context, ILogger<StartAuctionRepository> logger, IOptions<ConnectionStrings> connectionStrings, IDatabaseConnection dbConnection) : IStartAuctionRepository
+    public class StartAuctionRepository(AuctioneerDbContext context, ILogger<StartAuctionRepository> logger) : IStartAuctionRepository
     {
         public async Task<SuccessOrError<StartAuctionCommandResult, StartAuctionErrorCode>> StartAuctionAsync(Auction auction, CancellationToken cancellationToken)
         {
@@ -59,13 +56,11 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.StartAuction
         {
             try
             {
-                string query = "SELECT EXISTS (SELECT 1 FROM vehicle WHERE id = @vehicleId)";
-                await using var connection = new NpgsqlConnection(connectionStrings.Value.AuctioneerDBConnectionString);
-                var command = new CommandDefinition(query, new { vehicleId }, cancellationToken: cancellationToken);
+                // Using EF to check if the vehicle exists
+                var exists = await context.Vehicles
+                    .AnyAsync(v => v.Id == vehicleId, cancellationToken);
 
-                var result = await dbConnection.QuerySingleOrDefaultAsync<bool>(command);
-
-                return result;
+                return exists;
             }
             catch (Exception ex)
             {
@@ -78,13 +73,11 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.StartAuction
         {
             try
             {
-                string query = "SELECT EXISTS (SELECT 1 FROM auction WHERE vehicleid = @vehicleId and enddate is null)";
-                await using var connection = new NpgsqlConnection(connectionStrings.Value.AuctioneerDBConnectionString);
-                var command = new CommandDefinition(query, new { vehicleId }, cancellationToken: cancellationToken);
+                // Using EF to check for an active auction for the given vehicleId
+                var activeAuctionExists = await context.Auctions
+                    .AnyAsync(a => a.VehicleId == vehicleId && a.EndDate == null, cancellationToken);
 
-                var result = await dbConnection.QuerySingleOrDefaultAsync<bool>(command);
-
-                return result;
+                return activeAuctionExists;
             }
             catch (Exception ex)
             {

@@ -1,9 +1,6 @@
-﻿using Dapper;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.EntityFrameworkCore;
 using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Domain;
-using NetSimpleAuctioneer.API.Infrastructure.Configuration;
 using NetSimpleAuctioneer.API.Infrastructure.Data;
 using Npgsql;
 
@@ -28,7 +25,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Shared
         Task<bool?> VehicleExistsAsync(Guid vehicleId, CancellationToken cancellationToken);
     }
 
-    public class VehicleRepository(AuctioneerDbContext context, ILogger<VehicleRepository> logger, IOptions<ConnectionStrings> connectionStrings, IDatabaseConnection dbConnection) : IVehicleRepository
+    public class VehicleRepository(AuctioneerDbContext context, ILogger<VehicleRepository> logger) : IVehicleRepository
     {
         public async Task<VoidOrError<AddVehicleErrorCode>> AddVehicleAsync(Vehicle vehicle, CancellationToken cancellationToken)
         {
@@ -56,13 +53,7 @@ namespace NetSimpleAuctioneer.API.Features.Vehicles.Shared
         {
             try
             {
-                string query = "SELECT EXISTS (SELECT 1 FROM auction WHERE vehicleid = @vehicleId and enddate is null)";
-                await using var connection = new NpgsqlConnection(connectionStrings.Value.AuctioneerDBConnectionString);
-                var command = new CommandDefinition(query, new { vehicleId }, cancellationToken: cancellationToken);
-
-                var result = await dbConnection.QuerySingleOrDefaultAsync<bool>(command);
-
-                return result;
+                return await context.Auctions.AnyAsync(a => a.VehicleId == vehicleId && a.EndDate == null, cancellationToken);
             }
             catch (Exception ex)
             {

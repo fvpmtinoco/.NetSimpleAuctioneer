@@ -1,10 +1,6 @@
-﻿using Dapper;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.EntityFrameworkCore;
 using NetSimpleAuctioneer.API.Application;
-using NetSimpleAuctioneer.API.Infrastructure.Configuration;
 using NetSimpleAuctioneer.API.Infrastructure.Data;
-using Npgsql;
 
 namespace NetSimpleAuctioneer.API.Features.Auctions.CloseAuction
 {
@@ -27,7 +23,7 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.CloseAuction
         Task<(Guid? auctionId, DateTime? endDate)?> GetAuctionByIdAsync(Guid auctionId, CancellationToken cancellationToken);
     }
 
-    public class CloseAuctionRepository(AuctioneerDbContext context, ILogger<CloseAuctionRepository> logger, IOptions<ConnectionStrings> connectionStrings, IDatabaseConnection dbConnection) : ICloseAuctionRepository
+    public class CloseAuctionRepository(AuctioneerDbContext context, ILogger<CloseAuctionRepository> logger) : ICloseAuctionRepository
     {
         public async Task<SuccessOrError<CloseAuctionCommandResult, CloseAuctionErrorCode>> CloseAuctionAsync(Guid auctionId, CancellationToken cancellationToken)
         {
@@ -56,18 +52,19 @@ namespace NetSimpleAuctioneer.API.Features.Auctions.CloseAuction
         {
             try
             {
-                var query = @"SELECT id, enddate FROM auction WHERE id = @auctionId";
-                await using var connection = new NpgsqlConnection(connectionStrings.Value.AuctioneerDBConnectionString);
-                var command = new CommandDefinition(query, new { auctionId }, cancellationToken: cancellationToken);
+                var auction = await context.Auctions
+                    .Where(a => a.Id == auctionId)
+                    .Select(a => new { a.Id, a.EndDate })
+                    .SingleOrDefaultAsync(cancellationToken);
 
+                if (auction == null)
+                    return (null, null);
 
-                var result = await dbConnection.QuerySingleOrDefaultAsync<(Guid? id, DateTime? enddate)>(command);
-
-                return result;
+                return (auction.Id, auction.EndDate);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error retrieving information from auction with ID: {AuctionId} when placing bid", auctionId);
+                logger.LogError(ex, "Error retrieving information from auction with ID: {AuctionId}", auctionId);
                 return null;
             }
         }

@@ -2,13 +2,11 @@ using AutoFixture;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
 using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Application.Policies;
 using NetSimpleAuctioneer.API.Domain;
 using NetSimpleAuctioneer.API.Features.Auctions.CloseAuction;
-using NetSimpleAuctioneer.API.Infrastructure.Configuration;
 using NetSimpleAuctioneer.API.Infrastructure.Data;
 using Polly;
 
@@ -20,9 +18,7 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
         private readonly Mock<ILogger<CloseAuctionService>> mockLoggerService;
         private readonly Mock<ICloseAuctionRepository> mockRepository;
         private readonly Mock<ICloseAuctionService> mockService;
-        private readonly Mock<IDatabaseConnection> mockDbConnection;
         private readonly Mock<IPolicyProvider> mockPolicyProvider;
-        private readonly Mock<IOptions<ConnectionStrings>> mockConnectionStrings;
         private readonly CloseAuctionRepository repository;
         private readonly AuctioneerDbContext context;
         private readonly AsyncPolicy mockRetryPolicy;
@@ -48,16 +44,6 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
             // Use the in-memory DbContext
             context = new AuctioneerDbContext(options);
 
-            // Mock the database connection
-            mockDbConnection = new Mock<IDatabaseConnection>();
-
-            // Mock the IOptions<ConnectionStrings>
-            mockConnectionStrings = new Mock<IOptions<ConnectionStrings>>();
-            mockConnectionStrings.Setup(x => x.Value).Returns(new ConnectionStrings
-            {
-                AuctioneerDBConnectionString = "Host=localhost;Port=5432;Database=AuctioneerDB;Username=postgres;Password=postgres"
-            });
-
             // Directly create and mock concrete AsyncPolicy (e.g., RetryPolicy)
             mockRetryPolicy = Policy.NoOpAsync();  // This is a simple NoOp policy
             mockCircuitBreakerPolicy = Policy.NoOpAsync();
@@ -71,9 +57,7 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
 
             repository = new CloseAuctionRepository(
                 context,
-                mockLoggerRepository.Object,
-                mockConnectionStrings.Object,
-                mockDbConnection.Object
+                mockLoggerRepository.Object
             );
 
             fixture = new();

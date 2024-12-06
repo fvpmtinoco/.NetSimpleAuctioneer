@@ -1,14 +1,13 @@
 ﻿using AutoFixture;
-using Dapper;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
 using NetSimpleAuctioneer.API.Application;
 using NetSimpleAuctioneer.API.Application.Policies;
 using NetSimpleAuctioneer.API.Features.Vehicles.Search;
 using NetSimpleAuctioneer.API.Features.Vehicles.Shared;
-using NetSimpleAuctioneer.API.Infrastructure.Configuration;
+using NetSimpleAuctioneer.API.Infrastructure.Data;
 using Polly;
 
 namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
@@ -17,35 +16,32 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
     {
         private readonly Mock<ILogger<SearchRepository>> _loggerRepositoryMock;
         private readonly Mock<ILogger<SearchService>> _loggerServiceMock;
-        private readonly Mock<IOptions<ConnectionStrings>> _connectionStringsMock;
-        private readonly Mock<IDatabaseConnection> _dbConnectionMock;
         private readonly SearchRepository _repository;
         private readonly SearchService _service;
         private readonly AsyncPolicy mockRetryPolicy;
         private readonly AsyncPolicy mockCircuitBreakerPolicy;
         private readonly Fixture fixture;
         private readonly Mock<IPolicyProvider> mockPolicyProvider;
+        private readonly AuctioneerDbContext context;
 
 
         public SearchVehiclesShould()
         {
             _loggerRepositoryMock = new Mock<ILogger<SearchRepository>>();
             _loggerServiceMock = new Mock<ILogger<SearchService>>();
-            _connectionStringsMock = new Mock<IOptions<ConnectionStrings>>();
-            _dbConnectionMock = new Mock<IDatabaseConnection>();
 
-            //// Mock the IOptions<ConnectionStrings>
-            _connectionStringsMock = new Mock<IOptions<ConnectionStrings>>();
-            _connectionStringsMock.Setup(x => x.Value).Returns(new ConnectionStrings
-            {
-                AuctioneerDBConnectionString = "Host=localhost;Port=5432;Database=AuctioneerDB;Username=postgres;Password=postgres"
-            });
+            // Set up an in-memory database for testing
+            var options = new DbContextOptionsBuilder<AuctioneerDbContext>()
+                            .UseInMemoryDatabase(databaseName: "TestDatabase")
+                            .Options;
+
+            // Use the in-memory DbContext
+            context = new AuctioneerDbContext(options);
 
             // Instantiate the repository
             _repository = new SearchRepository(
-                _loggerRepositoryMock.Object,
-                _connectionStringsMock.Object,
-                _dbConnectionMock.Object);
+                context,
+                _loggerRepositoryMock.Object);
 
             // Directly create and mock concrete AsyncPolicy (e.g., RetryPolicy)
             mockRetryPolicy = Policy.NoOpAsync();  // This is a simple NoOp policy
@@ -146,8 +142,6 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
         public async Task SearchVehiclesAsync_ShouldReturnEmpty_WhenNoVehiclesMatchQuery()
         {
             // Arrange
-            var mockDbConnection = new Mock<IDatabaseConnection>();
-
             var manufacturer = "Toyota";
             var model = "Corolla";
             var year = 2020;
@@ -158,10 +152,7 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
 
             var queryResult = new List<SearchVehicleResult>(); // Simulate no results returned
 
-            mockDbConnection.Setup(db => db.QueryAsync<SearchVehicleResult>(It.IsAny<CommandDefinition>()))
-                             .ReturnsAsync(queryResult); // Setup mock db connection to return empty list
-
-            var _repository = new SearchRepository(_loggerRepositoryMock.Object, _connectionStringsMock.Object, mockDbConnection.Object);
+            var _repository = new SearchRepository(context, _loggerRepositoryMock.Object);
 
             // Act
             var result = await _repository.SearchVehiclesAsync(manufacturer, model, year, vehicleType, pageNumber, pageSize, cancellationToken);
