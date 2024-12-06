@@ -57,9 +57,10 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
             );
 
             fixture = new Fixture();
+            fixture.Behaviors.Add(new OmitOnRecursionBehavior());
         }
 
-        [Fact(Skip = "Must be fixed due to dbcontext change")]
+        [Fact]
         public async Task RepositoryAddVehicleShouldAddVehicleSuccessfully()
         {
             // Arrange
@@ -76,7 +77,7 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Vehicles
             addedVehicle.Should().BeEquivalentTo(vehicle);
         }
 
-        [Fact(Skip = "Must be fixed due to dbcontext change")]
+        [Fact]
         public async Task RepositoryAddVehicleShouldReturnInternalForDuplicateId()
         {
             // Arrange

@@ -61,9 +61,10 @@ namespace NetSimpleAuctioneer.UnitTests.Features.Auctions
             );
 
             fixture = new();
+            fixture.Behaviors.Add(new OmitOnRecursionBehavior());
         }
 
-        [Fact(Skip = "Must be fixed due to dbcontext change")]
+        [Fact]
         public async Task StartAuctionAsyncShouldCreateAuctionForVehicle()
         {
             // Arrange
