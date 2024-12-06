@@ -29,7 +29,7 @@ Additionally, a logging pipeline behavior was introduced, which logs the request
 
 ### **1. Separation of Vehicle Addition with Unified Entity for Storage**
 Vehicles are added through separate endpoints for each type (e.g., `AddTruck`, `AddSedan`), while all vehicle data is stored in a single `Vehicle` entity that includes both common and specific properties. 
-For this purpose a relational database (PostgreSQL) was chosen for simplicity, with Dapper used for validation queries and search functionality, due to its efficiency with relational data. Tried to establish a clear separation of concerns, allowing the application layer to remain unchanged if the data persistence model is switched.
+For this purpose a relational database (PostgreSQL) was chosen for simplicity. Tried to establish a clear separation of concerns, allowing the application layer to remain unchanged if the data persistence model is switched.
 
   ##### Benefits:
   - **Separate Endpoints**: Each vehicle type has its own endpoint, ensuring only relevant fields are sent.
@@ -66,7 +66,7 @@ Incorporating cache expiration or invalidation strategies would ensure that the 
 ### **4. Validations**
 This API uses ASP.NET Core's built-in validation with Data Annotations. Considered the approach suitable for this project because it is a simple API with no complex validation rules. 
 All validation logic is defined directly in the model classes using attributes like `[Required]`, `[EmailAddress]`, and `[Range]`. This keeps the implementation straightforward and easy to maintain.
-For more complex scenarios or reusable validation logic, external libraries like FluentValidation could be considered in future updates. Specially if the application was to grow, it's generally better to consider using a validation framework
+For more complex scenarios or reusable validation logic, external libraries like FluentValidation could be considered in future updates.
 
 ### **5. Pagination**
 Pagination is used in the search vehicle functionality. However, due to lack of time, it does not provide feedback to client regarding total count records neither total pages. It also don't retrieve the specific attributes for each vehicle.
