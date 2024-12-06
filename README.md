@@ -63,10 +63,10 @@ Caching was not implemented due to time constraints, but it would be a logical a
 Implementing caching would improve frequently requested search results, especially those with common filters. 
 Incorporating cache expiration or invalidation strategies would ensure that the data remains reasonably up to date without causing excessive load on the database. Proper cache invalidation mechanisms would be necessary to handle changes in the underlying data. In this API, where only adding vehicles is possible, invalidation would have to occur after adding a new vehicle and closing an auction. Fine grained cache invalidation could be considered in this scenario, depending on its complexity.
 
-### **4. Contract validations**
+### **4. Validations**
 This API uses ASP.NET Core's built-in validation with Data Annotations. Considered the approach suitable for this project because it is a simple API with no complex validation rules. 
 All validation logic is defined directly in the model classes using attributes like `[Required]`, `[EmailAddress]`, and `[Range]`. This keeps the implementation straightforward and easy to maintain.
-For more complex scenarios or reusable validation logic, external libraries like FluentValidation could be considered in future updates.
+For more complex scenarios or reusable validation logic, external libraries like FluentValidation could be considered in future updates. Specially if the application was to grow, it's generally better to consider using a validation framework
 
 ### **5. Pagination**
 Pagination is used in the search vehicle functionality. However, due to lack of time, it does not provide feedback to client regarding total count records neither total pages. It also don't retrieve the specific attributes for each vehicle.
