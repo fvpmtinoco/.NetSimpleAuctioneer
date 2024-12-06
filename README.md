@@ -73,7 +73,7 @@ Pagination is used in the search vehicle functionality. However, due to lack of 
 Also, if a vehicle is inserted between the fetching, it might not be returned. In this case, I considered a vehicle listing does not need to reflect real-time accuracy or immediate consistency.
 
 ### **6. Tests**
-Extensive unit and integration tests were written that did their purpose: Detect issues and certifying that some refactors made did not break the functionalities. However the test code coverage could be improved. Due to lack of time not all implementations are backed with tests.
+Extensive unit and integration tests were written that did their purpose: Detect issues and certifying that some refactors made did not break the functionalities. However the test code coverage could be improved. Due to lack of time not all implementations are backed with tests. The last modification broke some unit tests that I unfortunately had to skip. 
 
 
 
