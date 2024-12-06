@@ -75,5 +75,9 @@ Also, if a vehicle is inserted between the fetching, it might not be returned. I
 ### **6. Tests**
 Extensive unit and integration tests were written that did their purpose: Detect issues and certifying that some refactors made did not break the functionalities. However the test code coverage could be improved. Due to lack of time not all implementations are backed with tests.  
 
+### ***7. Problematic coupling***
+Although using VSA, tried to keep Clean Architecture principles in mind. And there's at least one issue that arises. Using the same classes of result (SuccessOrError and VoidOrError) across all layers (application, and domain) is generally not considered ideal because it can create tight coupling between layers and break the principle of separation of concerns. Particularly the domain layer that should remain decoupled from any concerns about how data is presented. 
+The ideal was the repository to have its own response object, to be mapped to the application's own result object.
+
 
 
