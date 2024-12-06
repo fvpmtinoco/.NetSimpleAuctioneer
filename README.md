@@ -66,7 +66,7 @@ Incorporating cache expiration or invalidation strategies would ensure that the 
 ### **4. Validations**
 This API uses ASP.NET Core's built-in validation with Data Annotations. Considered the approach suitable for this project because it is a simple API with no complex validation rules. 
 All validation logic is defined directly in the model classes using attributes like `[Required]`, `[EmailAddress]`, and `[Range]`. This keeps the implementation straightforward and easy to maintain.
-For more complex scenarios or reusable validation logic, external libraries like FluentValidation could be considered in future updates.
+For more complex scenarios or reusable validation logic, external libraries like FluentValidation could be considered in future updates. Due to lack of time, I implemented validations in a straightforward manner, querying the repository. Fluent validations could also be used in validations like checking for highest bid, existance of vehicle,... This would keep validation separate from business logic.
 
 ### **5. Pagination**
 Pagination is used in the search vehicle functionality. However, due to lack of time, it does not provide feedback to client regarding total count records neither total pages. It also don't retrieve the specific attributes for each vehicle.
