@@ -61,12 +61,14 @@ The current implementation is not prepared for high concurrency, especially in t
 ### **3. Caching**
 Caching was not implemented due to time constraints, but it would be a logical approach in the search functionality, assuming filter fields are limited to predefined options (not free text search). In a distributed system, using a caching solution like Redis could be highly beneficial.
 Implementing caching would improve frequently requested search results, especially those with common filters. 
+
 Incorporating cache expiration or invalidation strategies would ensure that the data remains reasonably up to date without causing excessive load on the database. Proper cache invalidation mechanisms would be necessary to handle changes in the underlying data. In this API, where only adding vehicles is possible, invalidation would have to occur after adding a new vehicle and closing an auction. Fine grained cache invalidation could be considered in this scenario, depending on its complexity.
 
 ### **4. Validations**
 This API uses ASP.NET Core's built-in validation with Data Annotations. Considered the approach suitable for this project because it is a simple API with no complex validation rules. 
-All validation logic is defined directly in the model classes using attributes like `[Required]`, `[EmailAddress]`, and `[Range]`. This keeps the implementation straightforward and easy to maintain.
-For more complex scenarios or reusable validation logic, external libraries like FluentValidation could be considered in future updates. Due to lack of time, I implemented validations in a straightforward manner, querying the repository. Fluent validations could also be used in validations like checking for highest bid, existance of vehicle,... This would keep validation separate from business logic.
+All validation logic is defined directly in the model classes using attributes like `[Required]`, `[EmailAddress]`, and `[Range]`. 
+
+However, I think a better approadh was to have used validation library like FluentValidation. I implemented validations in a straightforward manner, querying the repository. Fluent validations could also be used in validations like checking for highest bid, existance of vehicle,... This would keep validation separate from business logic.
 
 ### **5. Pagination**
 Pagination is used in the search vehicle functionality. However, due to lack of time, it does not provide feedback to client regarding total count records neither total pages. It also don't retrieve the specific attributes for each vehicle.
